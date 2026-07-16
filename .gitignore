@@ -1,6 +1,7 @@
 node_modules/
 .pnp/
 .claude/
+config/env/*.env
 .pnpm-debug.log*
 dist/
 build/
