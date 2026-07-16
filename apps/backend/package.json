@@ -1,0 +1,53 @@
+{
+  "name": "sportingspy-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "prisma:generate": "prisma generate --schema=../../config/prisma/schema.prisma",
+    "dev": "prisma generate --schema=../../config/prisma/schema.prisma && nest start --watch",
+    "build": "prisma generate --schema=../../config/prisma/schema.prisma && nest build",
+    "start": "node dist/main.js",
+    "start:worker": "node dist/main.js",
+    "test": "jest",
+    "test:cov": "jest --coverage"
+  },
+  "dependencies": {
+    "@fastify/compress": "^8",
+    "@fastify/cors": "^10",
+    "@fastify/helmet": "^13",
+    "@fastify/static": "^8",
+    "@nestjs/common": "^11",
+    "@nestjs/config": "^4",
+    "@nestjs/core": "^11",
+    "@nestjs/jwt": "^11",
+    "@nestjs/passport": "^11",
+    "@nestjs/platform-fastify": "^11",
+    "@nestjs/swagger": "^11",
+    "@nestjs/throttler": "^6",
+    "@prisma/client": "^6",
+    "bcrypt": "^5",
+    "class-transformer": "^0.5",
+    "class-validator": "^0.14",
+    "fastify": "^5",
+    "nestjs-pino": "^4",
+    "passport": "^0.7",
+    "passport-jwt": "^4",
+    "pino": "^9",
+    "pino-http": "^10",
+    "reflect-metadata": "^0.2",
+    "rxjs": "^7"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11",
+    "@nestjs/testing": "^11",
+    "@types/bcrypt": "^5",
+    "@types/jest": "^29",
+    "@types/passport-jwt": "^4",
+    "@types/supertest": "^6",
+    "jest": "^29",
+    "pino-pretty": "^13",
+    "prisma": "^6",
+    "supertest": "^7",
+    "ts-jest": "^29"
+  }
+}

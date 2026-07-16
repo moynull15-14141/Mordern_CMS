@@ -1,0 +1,31 @@
+FROM node:20-alpine AS base
+WORKDIR /app
+ENV NODE_ENV=production
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .
+COPY apps/backend/package.json apps/backend/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY apps/admin/package.json apps/admin/package.json
+COPY packages ./packages
+RUN corepack pnpm install --frozen-lockfile --prod
+
+FROM node:20-alpine AS build
+WORKDIR /app
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .
+COPY apps/backend/package.json apps/backend/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY apps/admin/package.json apps/admin/package.json
+COPY packages ./packages
+RUN corepack pnpm install --frozen-lockfile
+COPY . .
+WORKDIR /app/apps/backend
+RUN corepack pnpm run build
+
+FROM base AS release
+WORKDIR /app
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=build /app/apps/backend/dist ./apps/backend/dist
+WORKDIR /app/apps/backend
+EXPOSE 4000
+CMD ["corepack", "pnpm", "run", "start:worker"]
