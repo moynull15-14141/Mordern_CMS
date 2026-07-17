@@ -33,7 +33,7 @@
     "passport": "^0.7",
     "passport-jwt": "^4",
     "pino": "^9",
-    "pino-http": "^10",
+    "pino-http": "^11",
     "reflect-metadata": "^0.2",
     "rxjs": "^7"
   },
