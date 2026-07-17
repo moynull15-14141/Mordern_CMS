@@ -30,27 +30,35 @@ export class ApiResponseDto<T> {
 /**
  * Documents an endpoint's success response as the frozen envelope wrapping
  * `model` in `data`, via OpenAPI `allOf` composition — the standard
- * NestJS-recommended pattern for generic Swagger responses.
+ * NestJS-recommended pattern for generic Swagger responses. `isArray` wraps
+ * `data` as `model[]` instead of `model` (added Milestone 6 for Settings'
+ * list endpoints — the first callers needing it; every existing call site
+ * is unaffected since the option defaults to false).
  */
 export function ApiWrappedResponse<TModel extends Type<unknown>>(
   model: TModel,
-  options: Omit<ApiResponseOptions, 'schema'> = {},
+  options: Omit<ApiResponseOptions, 'schema'> & { isArray?: boolean } = {}
 ) {
+  const { isArray, ...responseOptions } = options;
+  const dataSchema = isArray
+    ? { type: 'array' as const, items: { $ref: getSchemaPath(model) } }
+    : { $ref: getSchemaPath(model) };
+
   return applyDecorators(
     ApiExtraModels(ApiResponseDto, model),
     ApiResponse({
       status: 200,
-      ...options,
+      ...responseOptions,
       schema: {
         allOf: [
           { $ref: getSchemaPath(ApiResponseDto) },
           {
             properties: {
-              data: { $ref: getSchemaPath(model) },
+              data: dataSchema,
             },
           },
         ],
       },
-    }),
+    })
   );
 }

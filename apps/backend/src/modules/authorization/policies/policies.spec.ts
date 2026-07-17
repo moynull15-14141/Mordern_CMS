@@ -19,11 +19,11 @@ describe('Policy foundation', () => {
     expect(policy.canCreate).toBeUndefined();
   });
 
-  it('ArticlePolicy is satisfiable with an authorId-shaped subject', () => {
+  it('ArticlePolicy is satisfiable with an authorId/authorUserId-shaped subject', () => {
     const policy: ArticlePolicy = {
       canUpdate: (_roles, subject: ArticlePolicySubject) => subject.authorId === 'author-1',
     };
-    expect(policy.canUpdate?.([], { authorId: 'author-1' })).toBe(true);
+    expect(policy.canUpdate?.([], { authorId: 'author-1', authorUserId: 'user-1' })).toBe(true);
   });
 
   it('MediaPolicy, CommentPolicy, and SettingsPolicy all satisfy the base Policy contract', () => {

@@ -14,15 +14,15 @@ PostgreSQL 13+ (partial/filtered unique indexes require only 9.5+, so this is a 
 
 ## Totals
 
-| Metric | Count |
-|---|---|
-| Models | 37 |
-| Enums | 18 |
-| `@relation` declarations | 72 |
-| `@@index` (plain indexes) | 68 |
-| `@@unique` declared in Prisma | 1 (`ArticleRevision.(articleId, version)` — no `deletedAt`, so a full-table constraint is correct as-is) |
-| Partial unique indexes (manual SQL, active-rows-only) | 25 |
-| Migrations | 3 (`20260716000000_init_v1_schema`, `20260716000001_partial_unique_indexes`, `20260716000002_session_metadata`) |
+| Metric                                                | Count                                                                                                           |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Models                                                | 37                                                                                                              |
+| Enums                                                 | 18                                                                                                              |
+| `@relation` declarations                              | 72                                                                                                              |
+| `@@index` (plain indexes)                             | 68                                                                                                              |
+| `@@unique` declared in Prisma                         | 1 (`ArticleRevision.(articleId, version)` — no `deletedAt`, so a full-table constraint is correct as-is)        |
+| Partial unique indexes (manual SQL, active-rows-only) | 25                                                                                                              |
+| Migrations                                            | 3 (`20260716000000_init_v1_schema`, `20260716000001_partial_unique_indexes`, `20260716000002_session_metadata`) |
 
 ## Soft Delete Strategy
 
@@ -35,10 +35,11 @@ Uniqueness scoped to active rows only (§ below) is enforced via partial unique 
 ## Partial Unique Index Strategy
 
 Prisma's schema DSL has no `WHERE` clause for `@@unique`. Every soft-deletable table's uniqueness constraint (25 of them — every `@@unique`/`@unique` originally declared except `ArticleRevision`'s) is now:
+
 1. A plain `@@index` in `schema.prisma` (query-performance only, no uniqueness enforced by Prisma).
 2. A real `CREATE UNIQUE INDEX ... WHERE "deleted_at" IS NULL` in the manual migration `20260716000001_partial_unique_indexes`.
 
-This means a soft-deleted row's slug/path/email/token — whichever field it was — becomes reusable by a new active row, while two *active* rows can never collide. Because Prisma never sees the partial index (it's not representable in the schema), future `prisma migrate dev` runs will never try to "correct" it back to a full-table constraint.
+This means a soft-deleted row's slug/path/email/token — whichever field it was — becomes reusable by a new active row, while two _active_ rows can never collide. Because Prisma never sees the partial index (it's not representable in the schema), future `prisma migrate dev` runs will never try to "correct" it back to a full-table constraint.
 
 ## UUID Strategy
 
@@ -46,7 +47,7 @@ This means a soft-deleted row's slug/path/email/token — whichever field it was
 
 ## Naming Convention
 
-PascalCase Prisma model names, camelCase fields, `@map`/`@@map` to `snake_case` table and column names in Postgres. Enum type names are PascalCase in Prisma, `snake_case` via `@@map` in Postgres; enum *values* are `UPPER_SNAKE_CASE` in both.
+PascalCase Prisma model names, camelCase fields, `@map`/`@@map` to `snake_case` table and column names in Postgres. Enum type names are PascalCase in Prisma, `snake_case` via `@@map` in Postgres; enum _values_ are `UPPER_SNAKE_CASE` in both.
 
 ## Migration Strategy
 
@@ -76,7 +77,7 @@ Confirmed compatible as a plain PostgreSQL connection string. No Supabase Auth, 
 
 ## Deferred Features (not in this schema, confirmed absent)
 
-`feature_flags` (table — the in-process `FeatureFlagsService` from Milestone 2.1 is unrelated and stays config-only), `webhooks` + delivery history, `blocks`, `widgets`, `member_subscriptions`, `content_permissions`, `newsletter_subscriptions`, `search_index_status`, `media_transforms`, `api_rate_limits`, `categories_translations`/`tags_translations`, `article_collections`. All per `31_DATABASE_TABLES.md`'s "Additional Tables" and `35_ARCHITECTURE_FREEZE.md`'s "Deferred Features."
+`feature_flags` (a dedicated table remains deferred — Milestone 6 moved feature-flag _storage_ into the existing `settings` table instead, under `SettingCategory.FEATURE_FLAGS`; see `39_SETTINGS_ARCHITECTURE.md`. `FeatureFlagsService` from Milestone 2.1 is no longer config-only — it now resolves through the Settings priority chain), `webhooks` + delivery history, `blocks`, `widgets`, `member_subscriptions`, `content_permissions`, `newsletter_subscriptions`, `search_index_status`, `media_transforms`, `api_rate_limits`, `categories_translations`/`tags_translations`, `article_collections`. All per `31_DATABASE_TABLES.md`'s "Additional Tables" and `35_ARCHITECTURE_FREEZE.md`'s "Deferred Features."
 
 ## Documentation Sync (Milestone 3.1 resolution)
 
@@ -86,26 +87,26 @@ Confirmed compatible as a plain PostgreSQL connection string. No Supabase Auth, 
 
 Every enum below is frozen for V1. "Source" of `V1 decision` means the value set was chosen during Milestone 3/3.1 (not previously dictated by a frozen doc) and is now locked; "Source: frozen doc" means the values are a direct transcription of an already-frozen requirement.
 
-| Enum | Purpose | Allowed Values | Default | Source | Future Expansion |
-|---|---|---|---|---|---|
-| `ContentStatus` | Editorial lifecycle for Article/ArticleRevision/Page | DRAFT, REVIEW, SCHEDULED, PUBLISHED, ARCHIVED, DELETED | DRAFT | Frozen — `20_BACKEND_ARCHITECTURE.md` §14 | None expected |
-| `ArticleVisibility` | Audience visibility of a published article | PUBLIC, PRIVATE, UNLISTED | PUBLIC | V1 decision | Paywall/gated tiers deferred to V2 membership features |
-| `UserStatus` | Account lifecycle | ACTIVE, INACTIVE, SUSPENDED, PENDING | PENDING | V1 decision | LOCKED (security lockout) may be added with 2FA in the Auth module |
-| `TenantStatus` | Tenant lifecycle | ACTIVE, INACTIVE, SUSPENDED | ACTIVE | V1 decision | Billing states (PAST_DUE, CANCELLED) with SaaS Cloud edition |
-| `SiteStatus` | Site lifecycle | ACTIVE, INACTIVE, MAINTENANCE | ACTIVE | V1 decision | None expected in single-site V1 |
-| `CategoryStatus` | Taxonomy visibility | ACTIVE, INACTIVE | ACTIVE | V1 decision | None expected |
-| `MediaType` | Uploaded asset kind | IMAGE, VIDEO, DOCUMENT, AUDIO | none (required) | V1 decision | None expected — format detail lives in `mime_type` |
-| `MediaStatus` | Asset processing pipeline state | PROCESSING, READY, FAILED, ARCHIVED | PROCESSING | V1 decision | Transform-specific sub-states deferred to `media_transforms` (V2/V3) |
-| `CommentStatus` | Moderation state | PENDING, APPROVED, REJECTED, SPAM | PENDING | V1 decision | None expected |
-| `RedirectStatus` | Whether a redirect rule is active | ACTIVE, INACTIVE | ACTIVE | V1 decision | None expected |
-| `SitemapType` | Sitemap flavor | XML, IMAGE, NEWS, RSS | none (required) | V1 decision, matches `20_BACKEND_ARCHITECTURE.md` §25 | None expected |
-| `SitemapStatus` | Sitemap generation job state | PENDING, GENERATED, FAILED | PENDING | V1 decision | None expected |
-| `AdStatus` | Ad slot lifecycle | ACTIVE, INACTIVE, EXPIRED | ACTIVE | V1 decision | None expected |
-| `NotificationChannel` | Delivery channel | EMAIL, IN_APP, SLACK, WEBHOOK | none (required) | V1 decision | SMS/push if a native mobile API is built |
-| `NotificationStatus` | Delivery lifecycle | PENDING, SENT, FAILED, READ | PENDING | V1 decision | None expected |
-| `AiTaskType` | Which AI capability an `AiJob` performs | WRITER, REWRITE, SUMMARY, META, FAQ, INTERNAL_LINKS, TAGS, CATEGORIES | none (required) | Frozen — `20_BACKEND_ARCHITECTURE.md` §26 / `35_ARCHITECTURE_FREEZE.md` Final AI Strategy | New task types require a docs update to §26/35 first, per RULE_ZERO |
-| `AiJobStatus` | AI job queue lifecycle | PENDING, PROCESSING, COMPLETED, FAILED | PENDING | V1 decision | Retry/backoff sub-states deferred to the actual queue implementation |
-| `ApiKeyStatus` | Integration key lifecycle | ACTIVE, REVOKED, EXPIRED | ACTIVE | V1 decision | None expected |
+| Enum                  | Purpose                                              | Allowed Values                                                        | Default         | Source                                                                                    | Future Expansion                                                     |
+| --------------------- | ---------------------------------------------------- | --------------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `ContentStatus`       | Editorial lifecycle for Article/ArticleRevision/Page | DRAFT, REVIEW, SCHEDULED, PUBLISHED, ARCHIVED, DELETED                | DRAFT           | Frozen — `20_BACKEND_ARCHITECTURE.md` §14                                                 | None expected                                                        |
+| `ArticleVisibility`   | Audience visibility of a published article           | PUBLIC, PRIVATE, UNLISTED                                             | PUBLIC          | V1 decision                                                                               | Paywall/gated tiers deferred to V2 membership features               |
+| `UserStatus`          | Account lifecycle                                    | ACTIVE, INACTIVE, SUSPENDED, PENDING                                  | PENDING         | V1 decision                                                                               | LOCKED (security lockout) may be added with 2FA in the Auth module   |
+| `TenantStatus`        | Tenant lifecycle                                     | ACTIVE, INACTIVE, SUSPENDED                                           | ACTIVE          | V1 decision                                                                               | Billing states (PAST_DUE, CANCELLED) with SaaS Cloud edition         |
+| `SiteStatus`          | Site lifecycle                                       | ACTIVE, INACTIVE, MAINTENANCE                                         | ACTIVE          | V1 decision                                                                               | None expected in single-site V1                                      |
+| `CategoryStatus`      | Taxonomy visibility                                  | ACTIVE, INACTIVE                                                      | ACTIVE          | V1 decision                                                                               | None expected                                                        |
+| `MediaType`           | Uploaded asset kind                                  | IMAGE, VIDEO, DOCUMENT, AUDIO                                         | none (required) | V1 decision                                                                               | None expected — format detail lives in `mime_type`                   |
+| `MediaStatus`         | Asset processing pipeline state                      | PROCESSING, READY, FAILED, ARCHIVED                                   | PROCESSING      | V1 decision                                                                               | Transform-specific sub-states deferred to `media_transforms` (V2/V3) |
+| `CommentStatus`       | Moderation state                                     | PENDING, APPROVED, REJECTED, SPAM                                     | PENDING         | V1 decision                                                                               | None expected                                                        |
+| `RedirectStatus`      | Whether a redirect rule is active                    | ACTIVE, INACTIVE                                                      | ACTIVE          | V1 decision                                                                               | None expected                                                        |
+| `SitemapType`         | Sitemap flavor                                       | XML, IMAGE, NEWS, RSS                                                 | none (required) | V1 decision, matches `20_BACKEND_ARCHITECTURE.md` §25                                     | None expected                                                        |
+| `SitemapStatus`       | Sitemap generation job state                         | PENDING, GENERATED, FAILED                                            | PENDING         | V1 decision                                                                               | None expected                                                        |
+| `AdStatus`            | Ad slot lifecycle                                    | ACTIVE, INACTIVE, EXPIRED                                             | ACTIVE          | V1 decision                                                                               | None expected                                                        |
+| `NotificationChannel` | Delivery channel                                     | EMAIL, IN_APP, SLACK, WEBHOOK                                         | none (required) | V1 decision                                                                               | SMS/push if a native mobile API is built                             |
+| `NotificationStatus`  | Delivery lifecycle                                   | PENDING, SENT, FAILED, READ                                           | PENDING         | V1 decision                                                                               | None expected                                                        |
+| `AiTaskType`          | Which AI capability an `AiJob` performs              | WRITER, REWRITE, SUMMARY, META, FAQ, INTERNAL_LINKS, TAGS, CATEGORIES | none (required) | Frozen — `20_BACKEND_ARCHITECTURE.md` §26 / `35_ARCHITECTURE_FREEZE.md` Final AI Strategy | New task types require a docs update to §26/35 first, per RULE_ZERO  |
+| `AiJobStatus`         | AI job queue lifecycle                               | PENDING, PROCESSING, COMPLETED, FAILED                                | PENDING         | V1 decision                                                                               | Retry/backoff sub-states deferred to the actual queue implementation |
+| `ApiKeyStatus`        | Integration key lifecycle                            | ACTIVE, REVOKED, EXPIRED                                              | ACTIVE          | V1 decision                                                                               | None expected                                                        |
 
 ### Deliberately not enumerated
 

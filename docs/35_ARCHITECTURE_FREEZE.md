@@ -37,7 +37,7 @@ This document locks the project architecture for Version 1 implementation. The f
 
 ## Rejected Audit Suggestions
 
-- `feature_flags` table is rejected for V1 because feature flagging is a future release concern.
+- `feature_flags` table is rejected for V1 because feature flagging is a future release concern. **Superseded (Milestone 6):** feature flags were moved into the Settings architecture as rows in the existing, already-frozen `Setting` table (`SettingCategory.FEATURE_FLAGS`) — no new `feature_flags` table was created, so this rejection's letter still holds; only its intent (static/env-only, never database-configurable) is reversed. See `39_SETTINGS_ARCHITECTURE.md` "Feature Flags — Architecture Change From Prior Freeze".
 - `webhook_deliveries` and webhook delivery history are rejected for V1; webhooks are deferred.
 - `search_index_status`, search suggestions, and vector search support are rejected for V1; V1 search remains relational/search-engine friendly.
 - Multi-tenancy and multi-region deployment patterns are rejected for V1 and deferred.
@@ -86,7 +86,8 @@ This document locks the project architecture for Version 1 implementation. The f
 ## Final Module List
 
 - Identity (implemented Milestone 4 as `modules/identity/`; referred to as "Auth" earlier in this document)
-- Authorization (implemented Milestone 5 as `modules/authorization/` — the permission/role *resolution engine*; distinct from the "Roles"/"Permissions" management modules below, which remain future CRUD business modules and do not exist yet)
+- Authorization (implemented Milestone 5 as `modules/authorization/` — the permission/role _resolution engine_; distinct from the "Roles"/"Permissions" management modules below, which remain future CRUD business modules and do not exist yet)
+- Settings (implemented Milestone 6 as `modules/settings/` — see `39_SETTINGS_ARCHITECTURE.md`; corresponds to this list's originally-planned `modules/config/`, renamed to match the milestone's own naming)
 - Users
 - Roles
 - Permissions
@@ -120,6 +121,7 @@ This document locks the project architecture for Version 1 implementation. The f
 ## Final Database Summary
 
 V1 tables include:
+
 - tenants, sites, users, sessions, refresh_tokens, password_reset_tokens, email_verifications
 - roles, permissions, role_permissions, user_roles
 - authors, categories, tags, articles, article_revisions, article_tags, article_media
@@ -134,6 +136,7 @@ V1 tables include:
 - pages, menus
 
 Deferred tables include:
+
 - webhooks, blocks, widgets, member_subscriptions, content_permissions, newsletter_subscriptions, search_index_status, media_transforms, api_rate_limits.
 
 ## Final API Strategy

@@ -33,16 +33,26 @@ Every permission is a lowercase `resource.action` string — never numeric, neve
 
 ```ts
 export const PERMISSIONS = {
-  ARTICLE_CREATE: 'article.create',       ARTICLE_UPDATE: 'article.update',
-  ARTICLE_DELETE: 'article.delete',       ARTICLE_PUBLISH: 'article.publish',
-  CATEGORY_CREATE: 'category.create',     MEDIA_UPLOAD: 'media.upload',
-  MEDIA_DELETE: 'media.delete',           SEO_MANAGE: 'seo.manage',
-  COMMENT_MODERATE: 'comment.moderate',   SETTINGS_MANAGE: 'settings.manage',
-  USERS_MANAGE: 'users.manage',           ROLES_MANAGE: 'roles.manage',
-  PERMISSIONS_MANAGE: 'permissions.manage', DASHBOARD_VIEW: 'dashboard.view',
-  ANALYTICS_VIEW: 'analytics.view',       MENU_MANAGE: 'menu.manage',
-  PAGE_MANAGE: 'page.manage',             THEME_MANAGE: 'theme.manage',
-  ADS_MANAGE: 'ads.manage',               API_MANAGE: 'api.manage',
+  ARTICLE_CREATE: 'article.create',
+  ARTICLE_UPDATE: 'article.update',
+  ARTICLE_DELETE: 'article.delete',
+  ARTICLE_PUBLISH: 'article.publish',
+  CATEGORY_CREATE: 'category.create',
+  MEDIA_UPLOAD: 'media.upload',
+  MEDIA_DELETE: 'media.delete',
+  SEO_MANAGE: 'seo.manage',
+  COMMENT_MODERATE: 'comment.moderate',
+  SETTINGS_MANAGE: 'settings.manage',
+  USERS_MANAGE: 'users.manage',
+  ROLES_MANAGE: 'roles.manage',
+  PERMISSIONS_MANAGE: 'permissions.manage',
+  DASHBOARD_VIEW: 'dashboard.view',
+  ANALYTICS_VIEW: 'analytics.view',
+  MENU_MANAGE: 'menu.manage',
+  PAGE_MANAGE: 'page.manage',
+  THEME_MANAGE: 'theme.manage',
+  ADS_MANAGE: 'ads.manage',
+  API_MANAGE: 'api.manage',
   SYSTEM_MANAGE: 'system.manage',
 } as const;
 ```
@@ -53,19 +63,19 @@ export const PERMISSIONS = {
 
 `interfaces/system-role.enum.ts` — string values match the future `Role.name` column exactly:
 
-| Enum member | Value |
-|---|---|
-| `SUPER_ADMIN` | `Super Admin` |
-| `ADMINISTRATOR` | `Administrator` |
-| `EDITOR` | `Editor` |
-| `AUTHOR` | `Author` |
-| `CONTRIBUTOR` | `Contributor` |
-| `MODERATOR` | `Moderator` |
-| `SEO_MANAGER` | `SEO Manager` |
-| `ADS_MANAGER` | `Ads Manager` |
+| Enum member        | Value              |
+| ------------------ | ------------------ |
+| `SUPER_ADMIN`      | `Super Admin`      |
+| `ADMINISTRATOR`    | `Administrator`    |
+| `EDITOR`           | `Editor`           |
+| `AUTHOR`           | `Author`           |
+| `CONTRIBUTOR`      | `Contributor`      |
+| `MODERATOR`        | `Moderator`        |
+| `SEO_MANAGER`      | `SEO Manager`      |
+| `ADS_MANAGER`      | `Ads Manager`      |
 | `ANALYTICS_VIEWER` | `Analytics Viewer` |
-| `SUBSCRIBER` | `Subscriber` |
-| `GUEST` | `Guest` |
+| `SUBSCRIBER`       | `Subscriber`       |
+| `GUEST`            | `Guest`            |
 
 These are code-level constants only — no seed data inserts them into `Role` (see `36_DATABASE_FREEZE.md`, which deliberately does not seed Roles/Permissions). Against an empty `Role` table the engine still behaves correctly: every resolution method returns an empty set rather than throwing.
 
@@ -146,27 +156,27 @@ Every check is keyed by `userId`, never by a JWT claim — consistent with `37_I
 
 The single source of truth business modules must call — they must never compute permissions themselves:
 
-| Method | Signature | Behavior |
-|---|---|---|
-| `resolveInheritedRoles` | `(roleNames: string[]) => string[]` | Synchronous hierarchy expansion, no DB call |
-| `resolveEffectiveRoles` | `(userId: string) => Promise<string[]>` | Direct roles + inherited roles |
-| `resolvePermissions` | `(userId: string) => Promise<string[]>` | Flat deduped permission keys across effective roles |
-| `hasPermission` | `(userId, permission: string) => Promise<boolean>` | Single-permission check |
-| `hasAnyPermission` | `(userId, permissions: string[]) => Promise<boolean>` | OR semantics; empty array => `true` |
-| `hasAllPermissions` | `(userId, permissions: string[]) => Promise<boolean>` | AND semantics; empty array => `true` |
-| `hasRole` | `(userId, roleName: string) => Promise<boolean>` | True if held directly or via inheritance |
-| `can` | `(userId, permission: string) => Promise<boolean>` | Placeholder gate; today delegates to `hasPermission`, kept as its own method so a future policy-aware implementation (consulting a `Policy`) can replace its body without changing callers |
+| Method                  | Signature                                             | Behavior                                                                                                                                                                                   |
+| ----------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `resolveInheritedRoles` | `(roleNames: string[]) => string[]`                   | Synchronous hierarchy expansion, no DB call                                                                                                                                                |
+| `resolveEffectiveRoles` | `(userId: string) => Promise<string[]>`               | Direct roles + inherited roles                                                                                                                                                             |
+| `resolvePermissions`    | `(userId: string) => Promise<string[]>`               | Flat deduped permission keys across effective roles                                                                                                                                        |
+| `hasPermission`         | `(userId, permission: string) => Promise<boolean>`    | Single-permission check                                                                                                                                                                    |
+| `hasAnyPermission`      | `(userId, permissions: string[]) => Promise<boolean>` | OR semantics; empty array => `true`                                                                                                                                                        |
+| `hasAllPermissions`     | `(userId, permissions: string[]) => Promise<boolean>` | AND semantics; empty array => `true`                                                                                                                                                       |
+| `hasRole`               | `(userId, roleName: string) => Promise<boolean>`      | True if held directly or via inheritance                                                                                                                                                   |
+| `can`                   | `(userId, permission: string) => Promise<boolean>`    | Placeholder gate; today delegates to `hasPermission`, kept as its own method so a future policy-aware implementation (consulting a `Policy`) can replace its body without changing callers |
 
 ## Decorators
 
 Thin `SetMetadata()` wrappers over 4 keys in `authorization.constants.ts` (`authz:require_permission`, `authz:require_any_permission`, `authz:require_all_permissions`, `authz:require_role`):
 
-| Decorator | Metadata key | Read by |
-|---|---|---|
-| `@RequirePermission(...perms)` | `REQUIRE_PERMISSION_KEY` | `PermissionGuard`, `AuthorizationGuard` (AND semantics — `hasAllPermissions`) |
-| `@RequireAnyPermission(...perms)` | `REQUIRE_ANY_PERMISSION_KEY` | `PermissionGuard`, `AuthorizationGuard` (OR semantics — `hasAnyPermission`) |
+| Decorator                          | Metadata key                  | Read by                                                                       |
+| ---------------------------------- | ----------------------------- | ----------------------------------------------------------------------------- |
+| `@RequirePermission(...perms)`     | `REQUIRE_PERMISSION_KEY`      | `PermissionGuard`, `AuthorizationGuard` (AND semantics — `hasAllPermissions`) |
+| `@RequireAnyPermission(...perms)`  | `REQUIRE_ANY_PERMISSION_KEY`  | `PermissionGuard`, `AuthorizationGuard` (OR semantics — `hasAnyPermission`)   |
 | `@RequireAllPermissions(...perms)` | `REQUIRE_ALL_PERMISSIONS_KEY` | `PermissionGuard`, `AuthorizationGuard` (AND semantics — `hasAllPermissions`) |
-| `@RequireRole(...roles)` | `REQUIRE_ROLE_KEY` | `RoleGuard`, `AuthorizationGuard` (OR semantics — any listed role passes) |
+| `@RequireRole(...roles)`           | `REQUIRE_ROLE_KEY`            | `RoleGuard`, `AuthorizationGuard` (OR semantics — any listed role passes)     |
 
 None of these decorators enforce anything by themselves — they only attach metadata. Enforcement happens exclusively in the guards below, and only on routes that also apply one of those guards via `@UseGuards()`.
 
@@ -219,17 +229,29 @@ One endpoint, read-only self-inspection — not a management/CRUD endpoint:
 ## Future Extensibility
 
 ### Enterprise Support
+
 The hierarchy map and permission key vocabulary are centralized in two files (`role-hierarchy.ts`, `permission.constants.ts`), so adding advanced roles, approval workflows, or finer-grained resource scoping (per `40_PRODUCT_PHILOSOPHY.md`'s Enterprise edition) is additive: new enum members, new hierarchy entries, new permission keys — no change to `AuthorizationService`'s public API.
 
 ### Agency Support
+
 Because resolution is entirely driven by `UserRole`/`RolePermission` data (not hardcoded per-user logic), an agency managing multiple sites/clients can assign different role combinations per user without any code change — the `siteId` scoping already reserved in the JWT payload (`37_IDENTITY_FREEZE.md`) is available for a future site-scoped permission check layered on top of this engine.
 
 ### SaaS / Multi-tenant Compatibility
+
 `Role` already carries `tenant_id` (per `36_DATABASE_FREEZE.md`'s multi-tenant-ready note), so a future tenant-scoped resolution query is a repository-level change, not an `AuthorizationService` API change — callers would continue to call `hasPermission(userId, permission)` unchanged. V1 remains single-tenant; no tenant filtering is implemented in this milestone.
 
 ## Testing
 
 37 new tests added on top of Milestone 4.1's 44 (81 total / 16 suites), covering: role-hierarchy resolution (chain expansion, mid-chain start, standalone roles, dedup, empty input, unknown role name), `AuthorizationService` (all 8 methods, mocked repositories), all 3 guards (metadata-absent allow, no-user deny, AND/OR semantics, combined-guard cross-category denial), all 4 decorators (metadata correctness via direct `Reflect.getMetadata` reads), and policy foundation shape (interface satisfiability, no business logic asserted).
+
+## Future Enhancement — Settings Permission Split (Deferred, Not Implemented)
+
+The frozen `PERMISSIONS` vocabulary (above) has a single `SETTINGS_MANAGE: 'settings.manage'` key, used for every Settings endpoint — read and write alike (see `39_SETTINGS_ARCHITECTURE.md` §Security). A future **Enterprise Edition** (`40_PRODUCT_PHILOSOPHY.md` Product Editions) may introduce a finer split:
+
+- `settings.view` — read-only access to settings (`GET /settings*`).
+- `settings.manage` — retained as the write/mutate permission (`PUT`/`POST /settings*`), unchanged from today.
+
+This split is **deferred and NOT implemented**. It is explicitly **not part of the frozen permission vocabulary** in this document as of this stabilization patch. Adding it later requires adding `SETTINGS_VIEW: 'settings.view'` to `PERMISSIONS` and updating this document in the same change, per this document's own rule ("Adding a new permission means adding a new entry here and updating this document, never inventing an ad-hoc string at a call site") — no ad-hoc string may be introduced at a Settings call site before that happens.
 
 ## Deferred / Explicitly Out of Scope
 

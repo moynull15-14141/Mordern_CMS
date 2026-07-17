@@ -16,6 +16,13 @@ import { AuthorizationModule } from './modules/authorization/authorization.modul
 import { JwtAuthGuard } from './modules/identity/guards/jwt-auth.guard';
 import { IdentityModule } from './modules/identity/identity.module';
 import { HealthModule } from './modules/health/health.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { UsersModule } from './modules/users/users.module';
+import { ArticlesModule } from './modules/articles/articles.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { MediaModule } from './modules/media/media.module';
+import { CommentsModule } from './modules/comments/comments.module';
+import { SeoModule } from './modules/seo/seo.module';
 
 @Module({
   imports: [
@@ -27,13 +34,18 @@ import { HealthModule } from './modules/health/health.module';
       imports: [ConfigModule],
       inject: [AppConfigService],
       useFactory: (config: AppConfigService) => ({
-        throttlers: [
-          { ttl: config.app.throttle.ttl * 1000, limit: config.app.throttle.limit },
-        ],
+        throttlers: [{ ttl: config.app.throttle.ttl * 1000, limit: config.app.throttle.limit }],
       }),
     }),
     IdentityModule,
     AuthorizationModule,
+    SettingsModule,
+    UsersModule,
+    ArticlesModule,
+    CategoriesModule,
+    MediaModule,
+    CommentsModule,
+    SeoModule,
     HealthModule,
   ],
   providers: [
