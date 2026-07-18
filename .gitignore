@@ -20,6 +20,8 @@ coverage/
 **/out
 **/coverage
 **/.DS_Store
+**/next-env.d.ts
+**/tsconfig.tsbuildinfo
 
 # Docker
 docker-compose.override.yml
