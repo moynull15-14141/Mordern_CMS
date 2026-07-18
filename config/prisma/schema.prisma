@@ -198,6 +198,56 @@ enum ApiKeyStatus {
   @@map("api_key_status")
 }
 
+/// Menu editorial lifecycle — Backend Milestone 11.1 (Menu Schema Refactor,
+/// docs/71_FRONTEND_NAVIGATION.md's architecture review). Deliberately not
+/// `ContentStatus` (no REVIEW/SCHEDULED/DELETED phase applies to a Menu —
+/// it has no author workflow and is soft-deleted like every other model,
+/// not "status DELETED").
+enum MenuStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@map("menu_status")
+}
+
+/// What a MenuItem links to — exactly one of `pageId`/`articleId`/
+/// `categoryId`/`url` is set to match this, enforced at the service/
+/// validator layer (Prisma/Postgres has no native "exactly one of N
+/// nullable FKs" constraint worth hand-writing here, same reasoning
+/// SeoMeta's JSON fields use for cross-field rules).
+enum MenuItemTargetType {
+  PAGE
+  ARTICLE
+  CATEGORY
+  EXTERNAL_URL
+  CUSTOM_URL
+
+  @@map("menu_item_target_type")
+}
+
+/// Link target window behavior — `<a target="_self">` vs `target="_blank"`.
+enum MenuItemOpenMode {
+  SELF
+  BLANK
+
+  @@map("menu_item_open_mode")
+}
+
+/// Theme editorial lifecycle — Backend Milestone 12. Mirrors `MenuStatus`
+/// exactly (DRAFT/PUBLISHED/ARCHIVED, no REVIEW/SCHEDULED phase — a Theme
+/// has no author workflow). `isActive` (on `Theme` itself, not this enum)
+/// is the separate "currently live on the site" flag — a theme can be
+/// PUBLISHED without being active (available to activate) or DRAFT while
+/// being iterated on before its first activation.
+enum ThemeStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@map("theme_status")
+}
+
 // =====================================================================
 // Identity & Security
 // =====================================================================
@@ -497,6 +547,7 @@ model Site {
   activityLogs    ActivityLog[]
   menus           Menu[]
   pages           Page[]
+  themes          Theme[]
 
   @@index([tenantId, slug])
   @@index([domain])
@@ -559,7 +610,8 @@ model Category {
   children Category[] @relation("CategoryHierarchy")
   seoMeta  SeoMeta?   @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
 
-  articles Article[]
+  articles  Article[]
+  menuItems MenuItem[]
 
   @@index([siteId, slug])
   @@index([parentId])
@@ -628,6 +680,7 @@ model Article {
   tags      ArticleTag[]
   media     ArticleMedia[]
   comments  Comment[]
+  menuItems MenuItem[]
 
   @@index([siteId, slug])
   @@index([siteId, status, publishedAt])
@@ -1141,11 +1194,115 @@ model ApiKey {
 /// V1 per 31_DATABASE_TABLES.md. Was missing from 32_ENTITY_RELATIONSHIP.md's
 /// diagram and 35_ARCHITECTURE_FREEZE.md's summary (Milestone 3 finding);
 /// both docs were synced to include it in Milestone 3.1.
+/// Backend Milestone 11.1 (Menu Schema Refactor) — replaces the V1
+/// JSON-blob `items` field with a relational `MenuItem[]` (adjacency-list
+/// tree + `sortOrder`), mirroring `Category`'s already-proven hierarchy
+/// pattern in this schema rather than inventing a new one. See
+/// docs/71_FRONTEND_NAVIGATION.md "Recommended Schema".
 model Menu {
-  id     String @id @default(uuid()) @db.Uuid
-  siteId String @map("site_id") @db.Uuid
-  name   String
-  items  Json
+  id       String     @id @default(uuid()) @db.Uuid
+  siteId   String     @map("site_id") @db.Uuid
+  name     String
+  slug     String
+  /// Open-ended placement slot (e.g. "header"/"footer"/"sidebar"/"mobile")
+  /// — intentionally String, not an enum, so a theme can name its own
+  /// slots without a migration (mirrors `Permission.scope`'s "open-ended,
+  /// not a fixed documented set" precedent).
+  location String?
+  status   MenuStatus @default(DRAFT)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy String?   @map("created_by") @db.Uuid
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy String?   @map("updated_by") @db.Uuid
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+
+  site  Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  items MenuItem[]
+
+  @@index([siteId, slug])
+  @@index([siteId, location])
+  @@map("menus")
+}
+
+/// One navigation link, optionally nested under a parent `MenuItem`
+/// (adjacency-list tree, same pattern as `Category.parentId`/`children`).
+/// Exactly one of `pageId`/`articleId`/`categoryId`/`url` is populated,
+/// matching `targetType` — enforced by a future validator layer, not a DB
+/// constraint (see the `MenuItemTargetType` doc comment).
+model MenuItem {
+  id         String             @id @default(uuid()) @db.Uuid
+  menuId     String             @map("menu_id") @db.Uuid
+  parentId   String?            @map("parent_id") @db.Uuid
+  label      String
+  targetType MenuItemTargetType @map("target_type")
+
+  pageId     String? @map("page_id") @db.Uuid
+  articleId  String? @map("article_id") @db.Uuid
+  categoryId String? @map("category_id") @db.Uuid
+  /// Populated only for EXTERNAL_URL/CUSTOM_URL target types.
+  url        String?
+
+  openMode  MenuItemOpenMode @default(SELF) @map("open_mode")
+  icon      String?
+  cssClass  String?          @map("css_class")
+  sortOrder Int              @default(0) @map("sort_order")
+
+  /// Mega-menu readiness — open JSON for column/featured/description/
+  /// thumbnail metadata, same "typed columns for what every module needs,
+  /// JSON escape hatch for the long tail" pattern `SeoMeta.extraMeta`
+  /// already uses, rather than pre-guessing every mega-menu layout field.
+  layoutMeta Json? @map("layout_meta")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy String?   @map("created_by") @db.Uuid
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy String?   @map("updated_by") @db.Uuid
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+
+  menu     Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parent   MenuItem?  @relation("MenuItemHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children MenuItem[] @relation("MenuItemHierarchy")
+  page     Page?      @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  article  Article?   @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  category Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([menuId, parentId])
+  @@index([menuId, sortOrder])
+  @@index([pageId])
+  @@index([articleId])
+  @@index([categoryId])
+  @@map("menu_items")
+}
+
+/// Theme / Appearance (Backend Milestone 12) — a distinct relational
+/// entity, not an extension of the pre-existing `Site.theme Json?` field
+/// (a loose blob never wired to any module, same situation `Menu.items`
+/// was in before its own Milestone 11.1 refactor — left untouched here
+/// since this milestone didn't ask for that migration). `settings` holds
+/// the structured appearance payload (logo/favicon/colors/typography/
+/// layout/customCss/customJs — see `ThemeSettingsDto`) as JSON, same
+/// "typed DTO on the wire, JSON column in the DB" pattern `SeoMeta`
+/// already establishes — not a new pattern.
+model Theme {
+  id          String      @id @default(uuid()) @db.Uuid
+  siteId      String      @map("site_id") @db.Uuid
+  name        String
+  slug        String
+  version     String?
+  author      String?
+  description String?
+  thumbnail   String?
+  status      ThemeStatus @default(DRAFT)
+  /// Only one Theme per Site may have `isActive: true` — enforced by
+  /// `ThemesService.activateTheme` (deactivate-then-activate inside one
+  /// transaction), application-level like every other uniqueness rule in
+  /// this schema (`Menu.slug`/`Menu.location` have no DB constraint
+  /// either — see docs/71_BACKEND_MENUS.md "Validation Rules").
+  isActive    Boolean     @default(false) @map("is_active")
+  settings    Json?
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   createdBy String?   @map("created_by") @db.Uuid
@@ -1156,8 +1313,9 @@ model Menu {
 
   site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
-  @@index([siteId, name])
-  @@map("menus")
+  @@index([siteId, slug])
+  @@index([siteId, isActive])
+  @@map("themes")
 }
 
 model Page {
@@ -1179,6 +1337,8 @@ model Page {
 
   site    Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   seoMeta SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
+
+  menuItems MenuItem[]
 
   @@index([siteId, slug])
   @@index([status])
