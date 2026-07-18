@@ -23,6 +23,9 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { MediaModule } from './modules/media/media.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { SeoModule } from './modules/seo/seo.module';
+import { PagesModule } from './modules/pages/pages.module';
+import { MenusModule } from './modules/menus/menus.module';
+import { ThemesModule } from './modules/themes/themes.module';
 
 @Module({
   imports: [
@@ -46,6 +49,9 @@ import { SeoModule } from './modules/seo/seo.module';
     MediaModule,
     CommentsModule,
     SeoModule,
+    PagesModule,
+    MenusModule,
+    ThemesModule,
     HealthModule,
   ],
   providers: [

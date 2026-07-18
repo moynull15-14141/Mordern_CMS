@@ -15,6 +15,7 @@ export const ROUTES = {
   MEDIA: '/media',
   COMMENTS: '/comments',
   SEO: '/seo',
+  PAGES: '/pages',
   USERS: '/users',
   ROLES: '/roles',
   SETTINGS: '/settings',
@@ -78,6 +79,14 @@ export const TAG_ROUTES = {
 export const MEDIA_ROUTES = {
   upload: () => `${ROUTES.MEDIA}/upload`,
   detail: (id: string) => `${ROUTES.MEDIA}/${id}`,
+};
+
+/** Frontend Milestone 10 — id-scoped path builders, additive to `ROUTES`.
+ * No `/pages/[id]/schedule` — `Page` has no `scheduledAt` column. */
+export const PAGE_ROUTES = {
+  new: () => `${ROUTES.PAGES}/new`,
+  detail: (id: string) => `${ROUTES.PAGES}/${id}`,
+  edit: (id: string) => `${ROUTES.PAGES}/${id}/edit`,
 };
 
 /** Routes reachable without authentication — GuestRoute redirects an
