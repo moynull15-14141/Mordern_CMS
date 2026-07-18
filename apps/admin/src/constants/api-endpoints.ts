@@ -66,7 +66,8 @@ export const API_ENDPOINTS = {
     schedule: (id: string) => `/articles/${id}/schedule`,
     revisions: (id: string) => `/articles/${id}/revisions`,
     revisionsCompare: (id: string) => `/articles/${id}/revisions/compare`,
-    restoreRevision: (id: string, version: number) => `/articles/${id}/revisions/${version}/restore`,
+    restoreRevision: (id: string, version: number) =>
+      `/articles/${id}/revisions/${version}/restore`,
   },
   /** Frontend Milestone 6 — sub-paths verified directly against
    * `apps/backend/src/modules/categories/controllers/categories.controller.ts`.
@@ -116,6 +117,29 @@ export const API_ENDPOINTS = {
     TREE: '/media-folders/tree',
   },
   COMMENTS: '/comments',
-  SEO: '/seo',
+  /** Frontend Milestone 9 — sub-paths verified directly against
+   * `apps/backend/src/modules/seo/controllers/seo.controller.ts`. No
+   * `GET /seo` list endpoint exists — only lookup by id/article/category. */
+  SEO: {
+    ROOT: '/seo',
+    UPSERT: '/seo/upsert',
+    PREVIEW: '/seo/preview',
+    VALIDATE: '/seo/validate',
+    byId: (id: string) => `/seo/${id}`,
+    byArticle: (articleId: string) => `/seo/article/${articleId}`,
+    byCategory: (categoryId: string) => `/seo/category/${categoryId}`,
+    restore: (id: string) => `/seo/${id}/restore`,
+  },
+  /** Frontend Milestone 10 — sub-paths verified directly against
+   * `apps/backend/src/modules/pages/controllers/pages.controller.ts`. No
+   * `/schedule` endpoint, no hierarchy sub-paths — `Page` has no
+   * `scheduledAt`/`parentId` column. */
+  PAGES: {
+    ROOT: '/pages',
+    bySlug: (slug: string) => `/pages/slug/${slug}`,
+    byId: (id: string) => `/pages/${id}`,
+    restore: (id: string) => `/pages/${id}/restore`,
+    publish: (id: string) => `/pages/${id}/publish`,
+  },
   HEALTH: '/health',
 } as const;
