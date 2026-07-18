@@ -141,5 +141,16 @@ export const API_ENDPOINTS = {
     restore: (id: string) => `/pages/${id}/restore`,
     publish: (id: string) => `/pages/${id}/publish`,
   },
+  /** Frontend Milestone 12 — sub-paths verified directly against
+   * `apps/backend/src/modules/themes/controllers/themes.controller.ts`. No
+   * `bySlug` lookup exists on this controller (unlike Pages/Menus/
+   * Articles) — only `GET /themes/:id`. */
+  THEMES: {
+    ROOT: '/themes',
+    ACTIVE: '/themes/active',
+    byId: (id: string) => `/themes/${id}`,
+    restore: (id: string) => `/themes/${id}/restore`,
+    activate: (id: string) => `/themes/${id}/activate`,
+  },
   HEALTH: '/health',
 } as const;

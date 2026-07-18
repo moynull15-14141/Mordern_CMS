@@ -16,6 +16,7 @@ export const ROUTES = {
   COMMENTS: '/comments',
   SEO: '/seo',
   PAGES: '/pages',
+  THEMES: '/themes',
   USERS: '/users',
   ROLES: '/roles',
   SETTINGS: '/settings',
@@ -87,6 +88,15 @@ export const PAGE_ROUTES = {
   new: () => `${ROUTES.PAGES}/new`,
   detail: (id: string) => `${ROUTES.PAGES}/${id}`,
   edit: (id: string) => `${ROUTES.PAGES}/${id}/edit`,
+};
+
+/** Frontend Milestone 12 — id-scoped path builders, additive to `ROUTES`.
+ * No `/themes/:id/preview` — "Preview" is served by the Detail page itself
+ * (`GET /themes/:id`), no separate backend endpoint exists. */
+export const THEME_ROUTES = {
+  new: () => `${ROUTES.THEMES}/new`,
+  detail: (id: string) => `${ROUTES.THEMES}/${id}`,
+  edit: (id: string) => `${ROUTES.THEMES}/${id}/edit`,
 };
 
 /** Routes reachable without authentication — GuestRoute redirects an

@@ -7,6 +7,7 @@ import {
   BookOpen,
   MessageSquare,
   Search,
+  Palette,
   Users,
   ShieldCheck,
   Settings as SettingsIcon,
@@ -106,6 +107,19 @@ export const NAVIGATION: NavGroup[] = [
         href: ROUTES.SEO,
         icon: Search,
         permissions: [PERMISSIONS.SEO_MANAGE],
+      },
+    ],
+  },
+  {
+    id: 'appearance-group',
+    label: 'Appearance',
+    items: [
+      {
+        id: 'themes',
+        label: 'Themes',
+        href: ROUTES.THEMES,
+        icon: Palette,
+        permissions: [PERMISSIONS.THEME_MANAGE],
       },
     ],
   },
