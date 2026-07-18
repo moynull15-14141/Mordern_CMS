@@ -78,6 +78,45 @@ describe('response interceptor — success path', () => {
   });
 });
 
+describe('response interceptor — paginated success path (Frontend Milestone 3)', () => {
+  it('resolves { data, meta } when the request config has paginated: true', () => {
+    const { fulfilled } = getResponseHandlers();
+    const result = fulfilled({
+      config: { paginated: true },
+      data: {
+        success: true,
+        message: 'ok',
+        data: [{ id: 1 }, { id: 2 }],
+        meta: { requestId: 'req-1', pagination: { page: 1, limit: 20, total: 2, hasNext: false, hasPrevious: false } },
+        errors: [],
+      },
+    });
+    expect(result).toEqual({
+      data: [{ id: 1 }, { id: 2 }],
+      meta: { requestId: 'req-1', pagination: { page: 1, limit: 20, total: 2, hasNext: false, hasPrevious: false } },
+    });
+  });
+
+  it('still resolves bare data when paginated is not set, unchanged from before', () => {
+    const { fulfilled } = getResponseHandlers();
+    const result = fulfilled({
+      config: {},
+      data: { success: true, message: 'ok', data: [{ id: 1 }], meta: { pagination: { page: 1, limit: 20, total: 1, hasNext: false, hasPrevious: false } }, errors: [] },
+    });
+    expect(result).toEqual([{ id: 1 }]);
+  });
+
+  it('throws an ApiError for a failed paginated envelope, same as the non-paginated path', () => {
+    const { fulfilled } = getResponseHandlers();
+    expect(() =>
+      fulfilled({
+        config: { paginated: true },
+        data: { success: false, message: 'Failed', data: null, meta: {}, errors: [{ code: 'BUSINESS_X', message: 'nope' }] },
+      })
+    ).toThrow(ApiError);
+  });
+});
+
 describe('response interceptor — error path', () => {
   it('maps a network error (no response) to a NETWORK_ERROR ApiError', async () => {
     const { rejected } = getResponseHandlers();
@@ -166,6 +205,47 @@ describe('response interceptor — error path', () => {
     expect(originalConfig.headers.set).toHaveBeenCalledWith('Authorization', 'Bearer fresh');
   });
 
+  it('preserves paginated: true through a 401 refresh-and-retry, resolving { data, meta }', async () => {
+    tokenStore.setTokens(mockAuthTokens({ accessToken: 'stale', refreshToken: 'refresh-1' }));
+    vi.spyOn(axios, 'isAxiosError').mockReturnValue(true);
+    vi.spyOn(axios, 'post').mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: { accessToken: 'fresh', refreshToken: 'refresh-2', expiresIn: 3600 },
+        meta: {},
+        errors: [],
+      },
+    });
+    vi.spyOn(apiClient, 'request').mockResolvedValue({
+      data: {
+        success: true,
+        message: 'ok',
+        data: [{ id: 42 }],
+        meta: { pagination: { page: 1, limit: 20, total: 1, hasNext: false, hasPrevious: false } },
+        errors: [],
+      },
+    });
+
+    const { rejected } = getResponseHandlers();
+    const originalConfig = makeConfig({ paginated: true } as Partial<InternalAxiosRequestConfig>);
+    const axiosError = Object.assign(new Error('Unauthorized'), {
+      isAxiosError: true,
+      config: originalConfig,
+      response: {
+        status: 401,
+        data: { success: false, message: 'Unauthorized', data: null, meta: {}, errors: [] },
+      },
+    });
+
+    const result = await rejected(axiosError);
+
+    expect(result).toEqual({
+      data: [{ id: 42 }],
+      meta: { pagination: { page: 1, limit: 20, total: 1, hasNext: false, hasPrevious: false } },
+    });
+  });
+
   it('clears tokens and notifies onSessionExpired listeners when the refresh itself fails', async () => {
     tokenStore.setTokens(mockAuthTokens({ accessToken: 'stale', refreshToken: 'refresh-1' }));
     vi.spyOn(axios, 'isAxiosError').mockReturnValue(true);
@@ -215,6 +295,16 @@ describe('api typed wrappers', () => {
       { email: 'a@b.com', password: 'x' },
       { public: true }
     );
+  });
+
+  it('api.getPaginated calls apiClient.get with paginated: true merged into the config', async () => {
+    await api.getPaginated('/users', { params: { page: 2 } });
+    expect(apiClient.get).toHaveBeenCalledWith('/users', { params: { page: 2 }, paginated: true });
+  });
+
+  it('api.getPaginated works with no config given', async () => {
+    await api.getPaginated('/users');
+    expect(apiClient.get).toHaveBeenCalledWith('/users', { paginated: true });
   });
 });
 

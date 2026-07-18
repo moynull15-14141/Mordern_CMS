@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { PermissionRoute } from '@/components/guards/permission-route';
 import { PageHeader } from '@/components/layout/page-header';
-import { PageContainer, ContentContainer } from '@/components/layout/containers';
+import { ContentContainer } from '@/components/layout/containers';
 import { ComingSoon } from '@/components/feedback/coming-soon';
 import type { PermissionKey } from '@/constants/permissions';
 
@@ -23,12 +23,10 @@ export interface ComingSoonPageProps {
  */
 export function ComingSoonPage({ title, permissions, requireAll }: ComingSoonPageProps): ReactNode {
   const content = (
-    <PageContainer>
-      <ContentContainer>
-        <PageHeader title={title} />
-        <ComingSoon title={title} />
-      </ContentContainer>
-    </PageContainer>
+    <ContentContainer>
+      <PageHeader title={title} />
+      <ComingSoon title={title} />
+    </ContentContainer>
   );
 
   if (!permissions) return content;

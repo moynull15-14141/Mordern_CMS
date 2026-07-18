@@ -3,7 +3,7 @@ import { env } from '@/lib/env';
 import { tokenStore } from '@/lib/token-store';
 import { ApiError } from '@/lib/api-error';
 import { API_ENDPOINTS } from '@/constants/api-endpoints';
-import type { ApiEnvelope } from '@/types/api';
+import type { ApiEnvelope, ApiResponseMeta } from '@/types/api';
 import type { AuthTokens } from '@/types/auth';
 
 /**
@@ -20,11 +20,25 @@ export const apiClient = axios.create({
 
 /** Marks a request as exempt from the Bearer-token/401-refresh machinery —
  * used by the 6 `@Public()` Identity endpoints (docs/53_API_FREEZE.md
- * "Authentication"), e.g. `api.post(LOGIN, credentials, { public: true })`. */
+ * "Authentication"), e.g. `api.post(LOGIN, credentials, { public: true })`.
+ *
+ * `paginated` (Frontend Milestone 3): opt-in flag so a list endpoint can
+ * resolve `{ data, meta }` instead of the bare `data` every other call site
+ * already gets — additive only, default behavior for every existing caller
+ * is unchanged (see `api.getPaginated()` below). */
 export interface RequestOptions extends AxiosRequestConfig {
   public?: boolean;
+  paginated?: boolean;
 }
 type PublicRequestConfig = RequestOptions;
+
+/** Resolved shape for a `paginated: true` request — mirrors the backend's
+ * envelope 1:1 (`meta.pagination`, `53_API_FREEZE.md` "Pagination") rather
+ * than inventing a different shape than what's already on the wire. */
+export interface PaginatedResponse<T> {
+  data: T;
+  meta: ApiResponseMeta;
+}
 
 /** Invoked once a refresh attempt has definitively failed — the Auth
  * Provider subscribes to this to clear state and redirect to /login,
@@ -79,7 +93,9 @@ async function refreshAccessToken(): Promise<string> {
  * queued request with the new token — docs/55_FRONTEND_HANDOFF.md's
  * "refresh-on-401-retry-once" pattern, implemented once as shared
  * infrastructure. */
-async function handleUnauthorized<T>(originalConfig: InternalAxiosRequestConfig): Promise<T> {
+async function handleUnauthorized<T>(
+  originalConfig: InternalAxiosRequestConfig,
+): Promise<T | PaginatedResponse<T>> {
   try {
     if (!refreshPromise) {
       refreshPromise = refreshAccessToken().finally(() => {
@@ -90,7 +106,8 @@ async function handleUnauthorized<T>(originalConfig: InternalAxiosRequestConfig)
 
     originalConfig.headers.set('Authorization', `Bearer ${newAccessToken}`);
     const retried = await apiClient.request<ApiEnvelope<T>>(originalConfig);
-    return unwrapEnvelope(retried.data);
+    const paginated = (originalConfig as PublicRequestConfig).paginated === true;
+    return unwrapEnvelope(retried.data, paginated);
   } catch (refreshError) {
     tokenStore.clearTokens();
     unauthorizedListener?.();
@@ -98,7 +115,7 @@ async function handleUnauthorized<T>(originalConfig: InternalAxiosRequestConfig)
   }
 }
 
-function unwrapEnvelope<T>(envelope: ApiEnvelope<T>): T {
+function unwrapEnvelope<T>(envelope: ApiEnvelope<T>, paginated?: boolean): T | PaginatedResponse<T> {
   if (!envelope.success) {
     throw new ApiError({
       message: envelope.errors[0]?.message ?? envelope.message,
@@ -106,6 +123,9 @@ function unwrapEnvelope<T>(envelope: ApiEnvelope<T>): T {
       requestId: envelope.meta?.requestId,
       errors: envelope.errors,
     });
+  }
+  if (paginated) {
+    return { data: envelope.data, meta: envelope.meta };
   }
   return envelope.data;
 }
@@ -141,8 +161,20 @@ function toApiError(error: unknown): ApiError {
 
 // --- Response Interceptor: envelope unwrap + 401 refresh + error mapping ---
 apiClient.interceptors.response.use(
-  (response) => unwrapEnvelope(response.data),
-  async (error: AxiosError<ApiEnvelope<unknown>>) => {
+  // Explicit `: any` return annotation is required here (not just for
+  // style) — without it, TypeScript's contextual typing tries to reconcile
+  // unwrapEnvelope's `T | PaginatedResponse<T>` union against Axios's own
+  // interceptor signature (which statically expects an AxiosResponse back,
+  // even though nothing at runtime enforces that — see the "Typed wrapper
+  // functions" comment below), producing a nonsensical inferred generic
+  // and a real `next build` type-check failure. The runtime behavior is
+  // unchanged either way; only the type-checker's inference path is fixed.
+  (response): any => {
+    const paginated = (response.config as PublicRequestConfig)?.paginated === true;
+    return unwrapEnvelope(response.data, paginated);
+  },
+  // Same `: any` reasoning as the fulfilled handler above.
+  async (error: AxiosError<ApiEnvelope<unknown>>): Promise<any> => {
     const originalConfig = error.config as
       (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
     const isPublic = (originalConfig as PublicRequestConfig | undefined)?.public === true;
@@ -167,6 +199,14 @@ apiClient.interceptors.response.use(
 export const api = {
   get<T>(url: string, config?: RequestOptions): Promise<T> {
     return apiClient.get(url, config) as unknown as Promise<T>;
+  },
+  /** Frontend Milestone 3: for list endpoints whose `data` is an array and
+   * whose `meta.pagination` a caller needs (`53_API_FREEZE.md` "Pagination")
+   * — resolves `{ data, meta }` instead of the bare array every other `get`
+   * call site still gets. Additive only; `api.get()` is unchanged. */
+  getPaginated<T>(url: string, config?: RequestOptions): Promise<PaginatedResponse<T>> {
+    const paginatedConfig: RequestOptions = { ...config, paginated: true };
+    return apiClient.get(url, paginatedConfig) as unknown as Promise<PaginatedResponse<T>>;
   },
   post<T>(url: string, data?: unknown, config?: RequestOptions): Promise<T> {
     return apiClient.post(url, data, config) as unknown as Promise<T>;

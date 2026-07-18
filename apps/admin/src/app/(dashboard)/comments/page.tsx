@@ -1,8 +1,10 @@
-import { ComingSoonPage } from '@/components/layout/coming-soon-page';
+import { SuspenseBoundary } from '@/providers/suspense-boundary';
+import { CommentsPageContent } from '@/features/comments';
 
-/** No permission requirement — any authenticated user may open this page
- * (docs/60_ADMIN_NAVIGATION.md: moderation actions are Action-Guard-gated
- * per-button, not Menu/Route-Guard-gated for the page itself). */
 export default function CommentsPage() {
-  return <ComingSoonPage title="Comments" />;
+  return (
+    <SuspenseBoundary>
+      <CommentsPageContent />
+    </SuspenseBoundary>
+  );
 }

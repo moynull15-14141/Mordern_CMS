@@ -3,6 +3,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { MobileNavDrawer } from '@/components/layout/mobile-nav-drawer';
+import { PageContainer } from '@/components/layout/containers';
 
 /** Dashboard Layout — docs/56_ADMIN_FRONTEND_ARCHITECTURE.md "Layout
  * System". Composes Sidebar + Header + Footer + responsive drawer; the
@@ -16,7 +17,9 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       <MobileNavDrawer />
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto">
+          <PageContainer>{children}</PageContainer>
+        </main>
         <Footer />
       </div>
     </div>

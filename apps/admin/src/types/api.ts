@@ -46,6 +46,13 @@ export interface PaginationParams {
 
 export type SortOrder = 'asc' | 'desc';
 
+/** Mirrors `MessageResponseDto` (`modules/identity/dto/message-response.dto.ts`)
+ * — the shape returned by every action-only endpoint with nothing else to
+ * return (logout, change-password, reset-password, session termination). */
+export interface MessageResponse {
+  message: string;
+}
+
 export interface SortParams<TSortField extends string = string> {
   sortBy?: TSortField;
   sortOrder?: SortOrder;

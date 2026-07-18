@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SettingEntryDto {
@@ -10,6 +10,10 @@ export class SettingEntryDto {
   key!: string;
 
   @ApiProperty({ description: 'New value for the setting.' })
+  // See `UpdateSettingDto.value` — same reasoning: `@IsOptional()` only to
+  // survive the global whitelist filter, no type constraint (polymorphic
+  // value, validated downstream by `SettingsValidator.assertType()`).
+  @IsOptional()
   value!: unknown;
 }
 

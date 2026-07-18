@@ -1,0 +1,50 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
+import { useTerminateAllSessions } from './use-terminate-all-sessions';
+import { sessionsApi } from '../services/sessions.api';
+import { toast } from '@/lib/toast';
+
+vi.mock('../services/sessions.api', () => ({ sessionsApi: { terminateAll: vi.fn() } }));
+vi.mock('@/lib/toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+function wrapper() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+  return {
+    Wrapper: function Wrapper({ children }: { children: ReactNode }) {
+      return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    },
+    invalidateSpy,
+  };
+}
+
+describe('useTerminateAllSessions', () => {
+  it('calls sessionsApi.terminateAll with the user id', async () => {
+    vi.mocked(sessionsApi.terminateAll).mockResolvedValue({ message: 'All sessions terminated.' });
+    const { Wrapper } = wrapper();
+    const { result } = renderHook(() => useTerminateAllSessions('u1'), { wrapper: Wrapper });
+
+    result.current.mutate();
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(sessionsApi.terminateAll).toHaveBeenCalledWith('u1');
+  });
+
+  it('invalidates the sessions query and shows the backend message', async () => {
+    vi.mocked(sessionsApi.terminateAll).mockResolvedValue({ message: 'All sessions terminated.' });
+    const { Wrapper, invalidateSpy } = wrapper();
+    const { result } = renderHook(() => useTerminateAllSessions('u1'), { wrapper: Wrapper });
+
+    result.current.mutate();
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['users', 'u1', 'sessions'] });
+    expect(toast.success).toHaveBeenCalledWith('All sessions terminated.');
+  });
+});

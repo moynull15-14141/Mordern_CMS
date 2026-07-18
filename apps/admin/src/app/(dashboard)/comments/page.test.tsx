@@ -1,11 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import CommentsPage from './page';
 
+vi.mock('@/features/comments', () => ({ CommentsPageContent: () => <div>Comments list</div> }));
+
 describe('CommentsPage', () => {
-  it('renders without requiring any permission (authenticated-only)', () => {
+  it('renders the list page content', () => {
     render(<CommentsPage />);
-    expect(screen.getByRole('heading', { name: 'Comments' })).toBeInTheDocument();
-    expect(screen.getByText("Comments isn't available yet")).toBeInTheDocument();
+    expect(screen.getByText('Comments list')).toBeInTheDocument();
   });
 });

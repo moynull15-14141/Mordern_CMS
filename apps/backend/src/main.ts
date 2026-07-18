@@ -22,6 +22,13 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors({
     origin: config.app.corsOrigins.length > 0 ? config.app.corsOrigins : true,
+    // Explicit — @fastify/cors v11 narrowed its own default from
+    // 'GET,HEAD,PUT,PATCH,POST,DELETE' (v10) to 'GET,HEAD,POST', which
+    // silently broke every browser-originated PUT/PATCH/DELETE request
+    // (blocked at the CORS preflight, before reaching any controller) the
+    // moment the dependency resolved to v11. Pinning the full method list
+    // here removes the dependency on whichever default that library ships.
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
   });
 

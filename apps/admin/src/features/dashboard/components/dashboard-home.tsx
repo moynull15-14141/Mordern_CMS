@@ -1,5 +1,5 @@
 import { FileText, FolderTree, MessageSquare, Users } from 'lucide-react';
-import { PageContainer, ContentContainer } from '@/components/layout/containers';
+import { ContentContainer } from '@/components/layout/containers';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCardSkeleton } from '@/features/dashboard/components/stat-card-skeleton';
 import { QuickActions } from '@/features/dashboard/components/quick-actions';
@@ -20,25 +20,23 @@ const STAT_CARDS = [
  * Recent Activity, System Status) — no resource query is issued here. */
 export function DashboardHome() {
   return (
-    <PageContainer>
-      <ContentContainer>
-        <PageHeader title="Dashboard" description="Overview of your admin panel." />
+    <ContentContainer>
+      <PageHeader title="Dashboard" description="Overview of your admin panel." />
 
-        <ProfileSummaryCard />
+      <ProfileSummaryCard />
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {STAT_CARDS.map(({ label, icon }) => (
-            <StatCardSkeleton key={label} label={label} icon={icon} />
-          ))}
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {STAT_CARDS.map(({ label, icon }) => (
+          <StatCardSkeleton key={label} label={label} icon={icon} />
+        ))}
+      </div>
 
-        <QuickActions />
+      <QuickActions />
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <RecentActivityCard />
-          <SystemStatusCard />
-        </div>
-      </ContentContainer>
-    </PageContainer>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <RecentActivityCard />
+        <SystemStatusCard />
+      </div>
+    </ContentContainer>
   );
 }
