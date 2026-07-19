@@ -1,0 +1,79 @@
+@import 'tailwindcss';
+
+/**
+ * Site-wide fallback values for the theme CSS variables `PublicLayout`
+ * applies per-request from the real `GET /public/theme` response
+ * (`utils/css-variables.util.ts`). These are defaults only — a live theme
+ * with a primary color set overrides `--sportingspy-color-primary` on the
+ * `PublicLayout` wrapper element, and every descendant (this file's own
+ * utility classes included) inherits that override via normal CSS cascade.
+ */
+:root {
+  --sportingspy-color-primary: #111827;
+  --sportingspy-color-secondary: #6b7280;
+  --sportingspy-color-accent: #6b7280;
+  --sportingspy-container-width: 1200px;
+  --sportingspy-border-radius: 0.5rem;
+  --sportingspy-radius: 0.5rem;
+
+  /**
+   * Static design-system tokens (Milestone 13.4) — NOT sourced from the
+   * backend. `ThemeSettingsDto`/`PublicThemeResponseDto` (verified) have no
+   * `background`/`surface`/`border`/`text`/`muted` field at all — only
+   * `primaryColor`/`secondaryColor` exist. Rule Zero forbids inventing a
+   * theme setting for these, so every current theme shares these same
+   * fixed neutral values; only the `@media (prefers-color-scheme: dark)`
+   * override below varies them, driven by the visitor's OS/browser
+   * preference (a real, native signal), never a fake backend flag. See
+   * docs/77_THEME_RENDERING_SYSTEM.md "CSS Variable Strategy" and "Dark
+   * Mode".
+   */
+  --sportingspy-color-background: #ffffff;
+  --sportingspy-color-surface: #f9fafb;
+  --sportingspy-color-border: #e5e7eb;
+  --sportingspy-color-text: #111827;
+  --sportingspy-color-muted: #6b7280;
+
+  /** Static spacing scale — likewise no backend field exists for this. */
+  --sportingspy-spacing-xs: 0.25rem;
+  --sportingspy-spacing-sm: 0.5rem;
+  --sportingspy-spacing-md: 1rem;
+  --sportingspy-spacing-lg: 1.5rem;
+  --sportingspy-spacing-xl: 2.5rem;
+
+  --sportingspy-font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/**
+ * Dark mode — "prepare architecture only" per the milestone brief: no
+ * backend `appearanceMode`/dark-mode field exists anywhere in
+ * `ThemeSettingsDto`, so this is driven entirely by the browser's real
+ * `prefers-color-scheme` media feature (the visitor's own OS/browser
+ * setting), never a fabricated setting. Only the static, non-theme-sourced
+ * tokens flip here — `primary`/`secondary`/`accent`/`radius`/
+ * `container-width` stay whatever the active theme set, unchanged.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sportingspy-color-background: #0a0a0a;
+    --sportingspy-color-surface: #171717;
+    --sportingspy-color-border: #262626;
+    --sportingspy-color-text: #f5f5f5;
+    --sportingspy-color-muted: #a3a3a3;
+  }
+}
+
+body {
+  color: var(--sportingspy-color-text);
+  background-color: var(--sportingspy-color-background);
+}
+
+:focus-visible {
+  outline: 2px solid var(--sportingspy-color-primary);
+  outline-offset: 2px;
+}
+
+.container-page {
+  max-width: var(--sportingspy-container-width);
+  margin-inline: auto;
+}

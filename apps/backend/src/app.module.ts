@@ -26,6 +26,8 @@ import { SeoModule } from './modules/seo/seo.module';
 import { PagesModule } from './modules/pages/pages.module';
 import { MenusModule } from './modules/menus/menus.module';
 import { ThemesModule } from './modules/themes/themes.module';
+import { SiteModule } from './modules/site/site.module';
+import { LayoutsModule } from './modules/layouts/layouts.module';
 
 @Module({
   imports: [
@@ -52,6 +54,8 @@ import { ThemesModule } from './modules/themes/themes.module';
     PagesModule,
     MenusModule,
     ThemesModule,
+    SiteModule,
+    LayoutsModule,
     HealthModule,
   ],
   providers: [

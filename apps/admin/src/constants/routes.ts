@@ -17,6 +17,7 @@ export const ROUTES = {
   SEO: '/seo',
   PAGES: '/pages',
   THEMES: '/themes',
+  LAYOUTS: '/layouts',
   USERS: '/users',
   ROLES: '/roles',
   SETTINGS: '/settings',
@@ -97,6 +98,17 @@ export const THEME_ROUTES = {
   new: () => `${ROUTES.THEMES}/new`,
   detail: (id: string) => `${ROUTES.THEMES}/${id}`,
   edit: (id: string) => `${ROUTES.THEMES}/${id}/edit`,
+};
+
+/** Backend Milestone 14.1 — id-scoped path builders, additive to `ROUTES`.
+ * `assignments()` is a dedicated page (not id-scoped) listing/managing
+ * every `LayoutAssignment` across the site — no single Layout "owns" the
+ * assignments page the way a Page/Article does its own edit route. */
+export const LAYOUT_ROUTES = {
+  new: () => `${ROUTES.LAYOUTS}/new`,
+  detail: (id: string) => `${ROUTES.LAYOUTS}/${id}`,
+  edit: (id: string) => `${ROUTES.LAYOUTS}/${id}/edit`,
+  assignments: () => `${ROUTES.LAYOUTS}/assignments`,
 };
 
 /** Routes reachable without authentication — GuestRoute redirects an

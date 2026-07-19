@@ -248,6 +248,35 @@ enum ThemeStatus {
   @@map("theme_status")
 }
 
+/// Layout editorial lifecycle (Backend Milestone 14.1) — mirrors
+/// `ThemeStatus`/`MenuStatus` exactly (DRAFT/PUBLISHED/ARCHIVED, no
+/// REVIEW/SCHEDULED phase — a Layout has no author workflow, same
+/// reasoning as Theme).
+enum LayoutStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@map("layout_status")
+}
+
+/// Content types a `Layout` can be assigned to (Backend Milestone 14.1) —
+/// mirrors `MenuItemTargetType`'s "one enum, one nullable FK per content
+/// type" shape. HOMEPAGE has no per-instance entity (there is no
+/// `Homepage` model — the home page is synthesized entirely by the
+/// frontend from Articles/Categories, see docs/76_FRONTEND_PUBLIC_WEBSITE.md),
+/// so a HOMEPAGE assignment always has every entity FK null. For
+/// PAGE/ARTICLE/CATEGORY, "every entity FK null" instead means "the
+/// content-type-wide default" — see `LayoutAssignment`'s own doc comment.
+enum LayoutAssignmentContentType {
+  HOMEPAGE
+  PAGE
+  ARTICLE
+  CATEGORY
+
+  @@map("layout_assignment_content_type")
+}
+
 // =====================================================================
 // Identity & Security
 // =====================================================================
@@ -526,28 +555,30 @@ model Site {
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
 
-  users           User[]
-  sessions        Session[]
-  authors         Author[]
-  categories      Category[]
-  tags            Tag[]
-  articles        Article[]
-  mediaAssets     MediaAsset[]
-  mediaFolders    MediaFolder[]
-  seoMeta         SeoMeta[]
-  redirects       Redirect[]
-  sitemaps        Sitemap[]
-  ads             Ad[]
-  analyticsEvents AnalyticsEvent[]
-  searchLogs      SearchLog[]
-  settingsRows    Setting[]
-  aiJobs          AiJob[]
-  aiPrompts       AiPrompt[]
-  auditLogs       AuditLog[]
-  activityLogs    ActivityLog[]
-  menus           Menu[]
-  pages           Page[]
-  themes          Theme[]
+  users             User[]
+  sessions          Session[]
+  authors           Author[]
+  categories        Category[]
+  tags              Tag[]
+  articles          Article[]
+  mediaAssets       MediaAsset[]
+  mediaFolders      MediaFolder[]
+  seoMeta           SeoMeta[]
+  redirects         Redirect[]
+  sitemaps          Sitemap[]
+  ads               Ad[]
+  analyticsEvents   AnalyticsEvent[]
+  searchLogs        SearchLog[]
+  settingsRows      Setting[]
+  aiJobs            AiJob[]
+  aiPrompts         AiPrompt[]
+  auditLogs         AuditLog[]
+  activityLogs      ActivityLog[]
+  menus             Menu[]
+  pages             Page[]
+  themes            Theme[]
+  layouts           Layout[]
+  layoutAssignments LayoutAssignment[]
 
   @@index([tenantId, slug])
   @@index([domain])
@@ -610,8 +641,9 @@ model Category {
   children Category[] @relation("CategoryHierarchy")
   seoMeta  SeoMeta?   @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
 
-  articles  Article[]
-  menuItems MenuItem[]
+  articles          Article[]
+  menuItems         MenuItem[]
+  layoutAssignments LayoutAssignment[]
 
   @@index([siteId, slug])
   @@index([parentId])
@@ -676,11 +708,12 @@ model Article {
   seoMeta         SeoMeta?    @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
   featuredMedia   MediaAsset? @relation("ArticleFeaturedMedia", fields: [featuredMediaId], references: [id], onDelete: SetNull)
 
-  revisions ArticleRevision[]
-  tags      ArticleTag[]
-  media     ArticleMedia[]
-  comments  Comment[]
-  menuItems MenuItem[]
+  revisions         ArticleRevision[]
+  tags              ArticleTag[]
+  media             ArticleMedia[]
+  comments          Comment[]
+  menuItems         MenuItem[]
+  layoutAssignments LayoutAssignment[]
 
   @@index([siteId, slug])
   @@index([siteId, status, publishedAt])
@@ -1313,6 +1346,8 @@ model Theme {
 
   site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
+  layouts Layout[]
+
   @@index([siteId, slug])
   @@index([siteId, isActive])
   @@map("themes")
@@ -1338,9 +1373,98 @@ model Page {
   site    Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   seoMeta SeoMeta? @relation(fields: [seoMetaId], references: [id], onDelete: SetNull)
 
-  menuItems MenuItem[]
+  menuItems         MenuItem[]
+  layoutAssignments LayoutAssignment[]
 
   @@index([siteId, slug])
   @@index([status])
   @@map("pages")
+}
+
+/// Layout Engine (Backend Milestone 14.1) — a reusable, structural-only
+/// preset a piece of content resolves before rendering (`Route -> Resolver
+/// -> Content -> Layout -> Theme -> Renderer -> HTML`, see
+/// docs/78_LAYOUT_ENGINE.md). Deliberately contains no block/content
+/// fields — "A Layout must NOT contain blocks. Only structural
+/// information" (the milestone's own instruction); a future Block Engine
+/// is a separate concept layered on top of this one, not a field added
+/// here. `layoutPreset` is an open-ended String, not an enum — same
+/// "a preset can be named without a migration" reasoning
+/// `ThemeSettingsDto.headerLayout`/`.homepageLayout` already establish for
+/// Theme's own layout fields — validated at the application layer against
+/// the frontend's real registry (`LAYOUT_PRESET_NAMES`), not the database.
+/// `themeId` is "theme compatibility" — null means "usable with any
+/// theme"; set only to restrict this Layout to one specific Theme.
+model Layout {
+  id           String       @id @default(uuid()) @db.Uuid
+  siteId       String       @map("site_id") @db.Uuid
+  themeId      String?      @map("theme_id") @db.Uuid
+  name         String
+  slug         String
+  status       LayoutStatus @default(DRAFT)
+  layoutPreset String       @map("layout_preset")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy String?   @map("created_by") @db.Uuid
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy String?   @map("updated_by") @db.Uuid
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+
+  site  Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  theme Theme? @relation(fields: [themeId], references: [id], onDelete: SetNull)
+
+  assignments LayoutAssignment[]
+
+  @@index([siteId, slug])
+  @@index([siteId, status])
+  @@index([themeId])
+  @@map("layouts")
+}
+
+/// Assigns a `Layout` to one specific piece of content — or, when every
+/// entity FK is null (PAGE/ARTICLE/CATEGORY only), to that whole content
+/// type site-wide (the "Content default" tier one level below an
+/// instance-specific assignment in `LayoutResolver`'s priority chain — see
+/// docs/78_LAYOUT_ENGINE.md "Resolution Flow"). Exactly one of
+/// `pageId`/`articleId`/`categoryId` may be set, and only the one matching
+/// `contentType` — enforced at the service/validator layer, same reasoning
+/// `MenuItem`'s equivalent fields already document; a HOMEPAGE assignment
+/// always has every entity FK null (there is exactly one homepage per
+/// site, and no `Homepage` model to reference).
+///
+/// `onDelete: Cascade` on every entity FK (not `SetNull`, unlike
+/// `MenuItem`) is deliberate: nulling `pageId` on a deleted Page would
+/// silently turn an instance-specific assignment into a content-type-wide
+/// default, which is never the intended behavior — deleting the assigned
+/// content must delete the assignment with it.
+model LayoutAssignment {
+  id          String                      @id @default(uuid()) @db.Uuid
+  siteId      String                      @map("site_id") @db.Uuid
+  layoutId    String                      @map("layout_id") @db.Uuid
+  contentType LayoutAssignmentContentType @map("content_type")
+
+  pageId     String? @map("page_id") @db.Uuid
+  articleId  String? @map("article_id") @db.Uuid
+  categoryId String? @map("category_id") @db.Uuid
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy String?   @map("created_by") @db.Uuid
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy String?   @map("updated_by") @db.Uuid
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+
+  site     Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  layout   Layout    @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  page     Page?     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  article  Article?  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, contentType])
+  @@index([siteId, contentType, pageId])
+  @@index([siteId, contentType, articleId])
+  @@index([siteId, contentType, categoryId])
+  @@index([layoutId])
+  @@map("layout_assignments")
 }

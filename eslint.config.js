@@ -15,7 +15,7 @@ const compat = new FlatCompat({ recommendedConfig: true });
 const nextCoreWebVitals = require('eslint-config-next/core-web-vitals');
 const nextConfigs = nextCoreWebVitals.map((cfg) => ({
   ...cfg,
-  files: ['apps/admin/**/*.{js,jsx,ts,tsx}'],
+  files: ['apps/admin/**/*.{js,jsx,ts,tsx}', 'apps/web/**/*.{js,jsx,ts,tsx}'],
 }));
 
 module.exports = [
@@ -72,7 +72,12 @@ module.exports = [
   },
   ...nextConfigs,
   {
-    files: ['apps/admin/**/*.test.{ts,tsx}', 'apps/admin/**/vitest.setup.ts'],
+    files: [
+      'apps/admin/**/*.test.{ts,tsx}',
+      'apps/admin/**/vitest.setup.ts',
+      'apps/web/**/*.test.{ts,tsx}',
+      'apps/web/**/vitest.setup.ts',
+    ],
     languageOptions: {
       globals: {
         describe: 'readonly',

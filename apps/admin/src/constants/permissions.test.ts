@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { PERMISSIONS, SYSTEM_ROLES } from './permissions';
 
 describe('PERMISSIONS', () => {
-  it("mirrors the backend's frozen 21-key vocabulary exactly", () => {
-    expect(Object.keys(PERMISSIONS)).toHaveLength(21);
+  it("mirrors the backend's permission vocabulary exactly (21 frozen V1 keys + layout.manage, Backend Milestone 14.1)", () => {
+    expect(Object.keys(PERMISSIONS)).toHaveLength(22);
   });
 
   it('has no duplicate permission string values', () => {

@@ -152,5 +152,19 @@ export const API_ENDPOINTS = {
     restore: (id: string) => `/themes/${id}/restore`,
     activate: (id: string) => `/themes/${id}/activate`,
   },
+  /** Backend Milestone 14.1 — sub-paths verified directly against
+   * `apps/backend/src/modules/layouts/controllers/layouts.controller.ts`
+   * and `layout-assignments.controller.ts`. No `bySlug` lookup on
+   * `LayoutsController` (mirrors Themes, not Pages/Articles). */
+  LAYOUTS: {
+    ROOT: '/layouts',
+    byId: (id: string) => `/layouts/${id}`,
+    restore: (id: string) => `/layouts/${id}/restore`,
+  },
+  LAYOUT_ASSIGNMENTS: {
+    ROOT: '/layout-assignments',
+    byId: (id: string) => `/layout-assignments/${id}`,
+    restore: (id: string) => `/layout-assignments/${id}/restore`,
+  },
   HEALTH: '/health',
 } as const;

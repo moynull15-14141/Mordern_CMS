@@ -23,6 +23,7 @@ export const PERMISSIONS = {
   MENU_MANAGE: 'menu.manage',
   PAGE_MANAGE: 'page.manage',
   THEME_MANAGE: 'theme.manage',
+  LAYOUT_MANAGE: 'layout.manage',
   ADS_MANAGE: 'ads.manage',
   API_MANAGE: 'api.manage',
   SYSTEM_MANAGE: 'system.manage',
