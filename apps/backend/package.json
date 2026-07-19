@@ -12,7 +12,7 @@
     "test:cov": "jest --coverage"
   },
   "dependencies": {
-    "@fastify/compress": "^8",
+    "@fastify/compress": "^9",
     "@fastify/cors": "^10",
     "@fastify/helmet": "^13",
     "@fastify/static": "^8",
