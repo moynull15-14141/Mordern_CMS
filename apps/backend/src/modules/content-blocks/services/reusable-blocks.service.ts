@@ -6,12 +6,17 @@ import { ReusableBlockRepository } from '../repositories/reusable-block.reposito
 import { ReusableBlockMapper } from '../mappers/reusable-block.mapper';
 import { BlockTreeValidator } from '../validators/block-tree.validator';
 import { BlockTreeSanitizer } from '../sanitization/block-tree-sanitizer.service';
+import { ReusableBlockCycleValidator } from '../validators/reusable-block-cycle.validator';
 import { ReusableBlockQueryOptions } from '../interfaces/reusable-block-query.interface';
+import { ReusableBlockUsageReference } from '../interfaces/reusable-block-usage.interface';
+import { BlockNode } from '../interfaces/block-node.interface';
+import { collectReusableBlockReferenceIds } from '../utils/block-tree-references.util';
 import { CreateReusableBlockDto } from '../dto/create-reusable-block.dto';
 import { UpdateReusableBlockDto } from '../dto/update-reusable-block.dto';
 import { ReusableBlockResponseDto } from '../dto/reusable-block-response.dto';
 import {
   ReusableBlockAlreadyDeletedException,
+  ReusableBlockInUseException,
   ReusableBlockNameConflictException,
   ReusableBlockNotDeletedException,
   ReusableBlockNotFoundException,
@@ -19,6 +24,14 @@ import {
 
 interface ActingUser {
   id: string;
+}
+
+function extractBlocks(body: unknown): BlockNode[] {
+  return typeof body === 'object' &&
+    body !== null &&
+    Array.isArray((body as { blocks?: unknown }).blocks)
+    ? ((body as { blocks: unknown }).blocks as BlockNode[])
+    : [];
 }
 
 /**
@@ -35,6 +48,7 @@ export class ReusableBlocksService {
     private readonly mapper: ReusableBlockMapper,
     private readonly blockTreeValidator: BlockTreeValidator,
     private readonly blockTreeSanitizer: BlockTreeSanitizer,
+    private readonly cycleValidator: ReusableBlockCycleValidator,
     private readonly auditLogger: AuditLoggerService
   ) {}
 
@@ -49,12 +63,16 @@ export class ReusableBlocksService {
     return block;
   }
 
-  /** Validates `{blockType, data}` by wrapping it as a single-node tree —
-   * reuses `BlockTreeValidator` rather than duplicating its field-shape
-   * checks here. */
-  private assertValidBlockShape(blockType: string, data: Record<string, unknown>): void {
+  /** Validates `{blockType, data, children}` by wrapping it as a
+   * single-node tree — reuses `BlockTreeValidator` rather than duplicating
+   * its field-shape/nesting checks here. */
+  private assertValidBlockShape(
+    blockType: string,
+    data: Record<string, unknown>,
+    children: BlockNode[] | undefined
+  ): void {
     this.blockTreeValidator.assertValid({
-      blocks: [{ id: 'reusable-block-validation', type: blockType, data }],
+      blocks: [{ id: 'reusable-block-validation', type: blockType, data, children }],
     });
   }
 
@@ -75,14 +93,19 @@ export class ReusableBlocksService {
   ): Promise<ReusableBlockResponseDto> {
     const site = await this.repository.getDefaultSite();
     await this.assertNameAvailable(dto.name, site.id);
-    this.assertValidBlockShape(dto.blockType, dto.data);
-    const sanitizedData = this.blockTreeSanitizer.sanitizeBlockData(dto.blockType, dto.data);
+    const children = dto.children as BlockNode[] | undefined;
+    this.assertValidBlockShape(dto.blockType, dto.data, children);
+    await this.cycleValidator.assertNoCycle(undefined, dto.name, dto.blockType, dto.data, children);
+    const sanitized = this.blockTreeSanitizer.sanitizeBlockData(dto.blockType, dto.data, children);
 
     const created = await this.repository.create({
       site: { connect: { id: site.id } },
       name: dto.name,
+      description: dto.description ?? null,
+      category: dto.category ?? null,
       blockType: dto.blockType,
-      data: sanitizedData as object,
+      data: sanitized.data as object,
+      children: sanitized.children as object[] | undefined,
       createdBy: actor.id,
       updatedBy: actor.id,
     });
@@ -126,15 +149,44 @@ export class ReusableBlocksService {
     if (dto.name !== undefined && dto.name !== existing.name) {
       await this.assertNameAvailable(dto.name, site.id, id);
     }
+
     let sanitizedData: Record<string, unknown> | undefined;
-    if (dto.data !== undefined) {
-      this.assertValidBlockShape(existing.blockType, dto.data);
-      sanitizedData = this.blockTreeSanitizer.sanitizeBlockData(existing.blockType, dto.data);
+    let sanitizedChildren: unknown[] | undefined;
+    if (dto.data !== undefined || dto.children !== undefined) {
+      const effectiveData = dto.data ?? (existing.data as Record<string, unknown>);
+      // Prisma returns `null` (not `undefined`) for an empty `children Json?`
+      // column — `BlockTreeValidator` treats "children: null" as "children
+      // present but this type can't have any," so it must be normalized to
+      // `undefined` ("no children key at all") here.
+      const effectiveChildren =
+        dto.children !== undefined
+          ? (dto.children as unknown as BlockNode[])
+          : ((existing.children as unknown as BlockNode[] | null) ?? undefined);
+
+      this.assertValidBlockShape(existing.blockType, effectiveData, effectiveChildren);
+      await this.cycleValidator.assertNoCycle(
+        id,
+        dto.name ?? existing.name,
+        existing.blockType,
+        effectiveData,
+        effectiveChildren
+      );
+
+      const sanitized = this.blockTreeSanitizer.sanitizeBlockData(
+        existing.blockType,
+        effectiveData,
+        effectiveChildren
+      );
+      sanitizedData = sanitized.data;
+      sanitizedChildren = sanitized.children;
     }
 
     const updated = await this.repository.update(id, {
       name: dto.name,
+      description: dto.description,
+      category: dto.category,
       data: sanitizedData as object | undefined,
+      children: sanitizedChildren as object[] | undefined,
       updatedBy: actor.id,
     });
 
@@ -153,6 +205,10 @@ export class ReusableBlocksService {
     const existing = await this.getReusableBlockOrThrow(id);
     if (existing.deletedAt) {
       throw new ReusableBlockAlreadyDeletedException(id);
+    }
+    const usages = await this.computeUsages(id, existing.siteId);
+    if (usages.length > 0) {
+      throw new ReusableBlockInUseException(id, usages.length);
     }
     await this.repository.softDelete(id, actor.id);
     this.auditLogger.record({
@@ -179,5 +235,47 @@ export class ReusableBlocksService {
       result: 'success',
     });
     return this.mapper.toResponseDto(await this.getReusableBlockOrThrow(id));
+  }
+
+  /** Every active Page/Article whose body references this reusable block,
+   * anywhere in its block tree. `Page.body`/`Article.body` are opaque JSON
+   * with no relational FK to `ReusableBlock`, so this is a scan, not an
+   * indexed join — acceptable because it only ever runs on-demand (the
+   * Delete flow, and the admin Detail/Inspector's "Used By" panel), never
+   * as part of a list response (see `ReusableBlocksController`/the admin
+   * hooks — usages are fetched lazily, one block at a time). "Landing
+   * Pages"/"Templates" aren't real content types in this codebase — only
+   * Page and Article exist, so those are the only two scanned. */
+  async getUsages(id: string): Promise<ReusableBlockUsageReference[]> {
+    const existing = await this.getReusableBlockOrThrow(id);
+    return this.computeUsages(id, existing.siteId);
+  }
+
+  private async computeUsages(
+    reusableBlockId: string,
+    siteId: string
+  ): Promise<ReusableBlockUsageReference[]> {
+    const [pages, articles] = await Promise.all([
+      this.repository.findActivePageBodies(siteId),
+      this.repository.findActiveArticleBodies(siteId),
+    ]);
+
+    const usages: ReusableBlockUsageReference[] = [];
+    for (const page of pages) {
+      if (collectReusableBlockReferenceIds(extractBlocks(page.body)).includes(reusableBlockId)) {
+        usages.push({ contentType: 'page', id: page.id, title: page.title, slug: page.slug });
+      }
+    }
+    for (const article of articles) {
+      if (collectReusableBlockReferenceIds(extractBlocks(article.body)).includes(reusableBlockId)) {
+        usages.push({
+          contentType: 'article',
+          id: article.id,
+          title: article.title,
+          slug: article.slug,
+        });
+      }
+    }
+    return usages;
   }
 }

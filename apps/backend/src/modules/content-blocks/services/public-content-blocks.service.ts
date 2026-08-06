@@ -25,7 +25,12 @@ export class PublicContentBlocksService {
       if (!block) {
         throw new ReusableBlockNotFoundException(id);
       }
-      return { id: block.id, blockType: block.blockType, data: block.data };
+      return {
+        id: block.id,
+        blockType: block.blockType,
+        data: block.data,
+        children: (block.children as unknown[] | null) ?? undefined,
+      };
     });
   }
 }

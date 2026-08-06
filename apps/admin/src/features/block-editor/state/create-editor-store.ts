@@ -5,6 +5,7 @@ import { getBlockDefinition } from '../registry/block-registry';
 import { initHistory, pushHistory, redo as redoHistory, undo as undoHistory } from './history';
 import { copyToClipboard, duplicateBlock, pasteFromClipboard } from './clipboard';
 import {
+  areBlockListsEqual,
   findBlock,
   findParentId,
   insertBlock,
@@ -30,6 +31,15 @@ export interface EditorStoreState {
   insertBlock: (type: string, parentId: string | null, index: number) => string;
   updateBlockData: (id: string, data: Record<string, unknown>) => void;
   updateBlockMeta: (id: string, meta: BlockNodeMeta) => void;
+  /** Replaces one block (wherever it is in the tree, including nested
+   * inside a container) with a whole new node — used by "Convert to
+   * reusable" (swaps a normal block for a `reusable-block` reference) and
+   * "Detach copy" (swaps a reference for its resolved, freshly-cloned
+   * content). A normal undo/redo-able tree op, same as every other action
+   * here — the async network call (create/get the reusable block) always
+   * happens in the calling component *before* this is invoked with the
+   * result; the store itself stays synchronous. */
+  replaceBlockById: (id: string, node: BlockNode) => void;
   removeBlockById: (id: string) => void;
   moveBlockTo: (id: string, parentId: string | null, index: number) => void;
   duplicateBlockById: (id: string) => void;
@@ -60,7 +70,20 @@ export function createEditorStore(initialBlocks: BlockNode[]) {
     hoveredId: null,
     clipboard: null,
 
-    hydrate: (blocks) => set({ history: initHistory(blocks), selectedId: null, hoveredId: null }),
+    // Returning `state` unchanged (rather than a new object) when `blocks`
+    // is already what we have is not just an optimization: Zustand's
+    // `setState` skips the merge *and* the listener notification entirely
+    // when the updater returns the exact same reference (`Object.is`
+    // check in zustand/vanilla), so a no-op hydrate never fires the
+    // store's `subscribe` callback in `block-editor-provider.tsx` — which
+    // is what forwards to the parent's `onChange` and is the step that
+    // closes the loop back to a new `value` prop.
+    hydrate: (blocks) =>
+      set((state) =>
+        areBlockListsEqual(state.history.present, blocks)
+          ? state
+          : { history: initHistory(blocks), selectedId: null, hoveredId: null }
+      ),
 
     insertBlock: (type, parentId, index) => {
       const definition = getBlockDefinition(type);
@@ -94,6 +117,17 @@ export function createEditorStore(initialBlocks: BlockNode[]) {
           history,
           updateBlock(history.present, id, (node) => ({ ...node, meta }))
         ),
+      });
+    },
+
+    replaceBlockById: (id, node) => {
+      const { history, selectedId } = get();
+      set({
+        history: pushHistory(
+          history,
+          updateBlock(history.present, id, () => node)
+        ),
+        selectedId: selectedId === id ? node.id : selectedId,
       });
     },
 

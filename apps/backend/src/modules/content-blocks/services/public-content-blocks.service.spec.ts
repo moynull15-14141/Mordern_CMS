@@ -31,4 +31,17 @@ describe('PublicContentBlocksService', () => {
     const result = await service.getReusableBlock('block-1');
     expect(result).toEqual({ id: 'block-1', blockType: 'callout', data: { text: 'Subscribe!' } });
   });
+
+  it('carries children through for a container block', async () => {
+    const { service, repository } = buildService();
+    const children = [{ id: 'c1', type: 'paragraph', data: { text: 'nested' } }];
+    (repository.findById as jest.Mock).mockResolvedValue({
+      id: 'block-1',
+      blockType: 'columns',
+      data: { columnCount: '2' },
+      children,
+    });
+    const result = await service.getReusableBlock('block-1');
+    expect(result.children).toEqual(children);
+  });
 });

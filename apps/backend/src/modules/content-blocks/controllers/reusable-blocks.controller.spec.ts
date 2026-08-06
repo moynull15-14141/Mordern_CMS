@@ -11,6 +11,7 @@ function buildController() {
     updateReusableBlock: jest.fn().mockResolvedValue({}),
     deleteReusableBlock: jest.fn().mockResolvedValue({}),
     restoreReusableBlock: jest.fn().mockResolvedValue({}),
+    getUsages: jest.fn().mockResolvedValue([]),
   } as unknown as ReusableBlocksService;
   const controller = new ReusableBlocksController(reusableBlocksService);
   return { controller, reusableBlocksService };
@@ -73,5 +74,11 @@ describe('ReusableBlocksController', () => {
     expect(reusableBlocksService.restoreReusableBlock).toHaveBeenCalledWith('block-1', {
       id: 'user-1',
     });
+  });
+
+  it('getUsages delegates with the id param', async () => {
+    const { controller, reusableBlocksService } = buildController();
+    await controller.getUsages('block-1');
+    expect(reusableBlocksService.getUsages).toHaveBeenCalledWith('block-1');
   });
 });

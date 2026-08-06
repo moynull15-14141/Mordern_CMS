@@ -175,6 +175,7 @@ export const API_ENDPOINTS = {
     REUSABLE_ROOT: '/content-blocks/reusable',
     reusableById: (id: string) => `/content-blocks/reusable/${id}`,
     reusableRestore: (id: string) => `/content-blocks/reusable/${id}/restore`,
+    reusableUsages: (id: string) => `/content-blocks/reusable/${id}/usages`,
   },
   HEALTH: '/health',
 } as const;

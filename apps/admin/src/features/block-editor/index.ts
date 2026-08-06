@@ -22,6 +22,10 @@ export type {
 export { runValidation, BUILT_IN_VALIDATORS } from './validation/validation-pipeline';
 export { blockTreeSchema, blockNodeSchema } from './validation/block-tree.schema';
 
+export { summarizeBlock } from './utils/summarize-block';
+export type { BlockSummary } from './utils/summarize-block';
+export { BlockSummaryPreview } from './components/shared/block-summary-preview';
+
 export type {
   BlockNode,
   BlockNodeMeta,

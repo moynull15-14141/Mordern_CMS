@@ -73,4 +73,28 @@ describe('PropertyPanel', () => {
     expect(screen.getByLabelText('Hide on tablet')).toBeInTheDocument();
     expect(screen.getByLabelText('Hide on desktop')).toBeInTheDocument();
   });
+
+  it('shows "Save as reusable"/"Convert to reusable" for a normal selected block', () => {
+    renderWithEditor(
+      <>
+        <SelectOnMount id="b1" />
+        <PropertyPanel />
+      </>,
+      [{ id: 'b1', type: 'paragraph', data: { text: 'x' } }]
+    );
+    expect(screen.getByRole('button', { name: 'Save as reusable' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Convert to reusable' })).toBeInTheDocument();
+  });
+
+  it('shows "Detach copy" instead for a selected reusable-block reference', () => {
+    renderWithEditor(
+      <>
+        <SelectOnMount id="b1" />
+        <PropertyPanel />
+      </>,
+      [{ id: 'b1', type: 'reusable-block', data: { reusableBlockId: 'rb-1' } }]
+    );
+    expect(screen.getByRole('button', { name: 'Detach copy' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save as reusable' })).not.toBeInTheDocument();
+  });
 });

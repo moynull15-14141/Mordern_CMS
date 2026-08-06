@@ -1482,11 +1482,14 @@ model LayoutAssignment {
 /// not the database. `data` is `Json` for the same reason every other
 /// block's `data` is — its shape depends on `blockType`.
 model ReusableBlock {
-  id        String @id @default(uuid()) @db.Uuid
-  siteId    String @map("site_id") @db.Uuid
-  name      String
-  blockType String @map("block_type")
-  data      Json
+  id          String  @id @default(uuid()) @db.Uuid
+  siteId      String  @map("site_id") @db.Uuid
+  name        String
+  blockType   String  @map("block_type")
+  data        Json
+  children    Json?
+  description String?
+  category    String?
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   createdBy String?   @map("created_by") @db.Uuid

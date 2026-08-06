@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createEditorStore } from './create-editor-store';
 import type { BlockNode } from '../types/block.types';
 
@@ -83,6 +83,93 @@ describe('createEditorStore', () => {
     expect(store.getState().history.present).toBe(external);
     expect(store.getState().selectedId).toBeNull();
     expect(store.getState().history.past).toEqual([]);
+  });
+
+  it('hydrate is a no-op (same state object, no listener notification) when the incoming blocks are structurally identical to the current tree', () => {
+    const store = createEditorStore([{ id: 'a', type: 'paragraph', data: { text: 'hi' } }]);
+    store.getState().selectBlock('a');
+    const stateBefore = store.getState();
+
+    const listener = vi.fn();
+    store.subscribe(listener);
+
+    // A new array reference, same content — the exact shape a re-rendered
+    // controlled parent can hand back even though nothing changed.
+    store.getState().hydrate([{ id: 'a', type: 'paragraph', data: { text: 'hi' } }]);
+
+    expect(store.getState()).toBe(stateBefore);
+    expect(store.getState().selectedId).toBe('a');
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('replaceBlockById swaps a top-level block for a whole new node', () => {
+    const store = createEditorStore([{ id: 'a', type: 'paragraph', data: { text: 'hi' } }]);
+    store
+      .getState()
+      .replaceBlockById('a', {
+        id: 'rb-ref',
+        type: 'reusable-block',
+        data: { reusableBlockId: 'rb-1' },
+      });
+
+    const present = store.getState().history.present;
+    expect(present).toHaveLength(1);
+    expect(present[0]).toEqual({
+      id: 'rb-ref',
+      type: 'reusable-block',
+      data: { reusableBlockId: 'rb-1' },
+    });
+  });
+
+  it('replaceBlockById replaces a block nested inside a container', () => {
+    const store = createEditorStore([
+      {
+        id: 'container-1',
+        type: 'container',
+        data: {},
+        children: [{ id: 'a', type: 'paragraph', data: { text: 'hi' } }],
+      },
+    ]);
+    store
+      .getState()
+      .replaceBlockById('a', { id: 'b', type: 'heading', data: { text: 'New', level: '2' } });
+
+    const child = store.getState().history.present[0].children?.[0];
+    expect(child).toEqual({ id: 'b', type: 'heading', data: { text: 'New', level: '2' } });
+  });
+
+  it('replaceBlockById moves selection onto the new node when the replaced block was selected', () => {
+    const store = createEditorStore([{ id: 'a', type: 'paragraph', data: {} }]);
+    store.getState().selectBlock('a');
+    store
+      .getState()
+      .replaceBlockById('a', { id: 'b', type: 'heading', data: { text: '', level: '2' } });
+    expect(store.getState().selectedId).toBe('b');
+  });
+
+  it('replaceBlockById leaves selection untouched when a different block was selected', () => {
+    const store = createEditorStore([
+      { id: 'a', type: 'paragraph', data: {} },
+      { id: 'other', type: 'paragraph', data: {} },
+    ]);
+    store.getState().selectBlock('other');
+    store
+      .getState()
+      .replaceBlockById('a', { id: 'b', type: 'heading', data: { text: '', level: '2' } });
+    expect(store.getState().selectedId).toBe('other');
+  });
+
+  it('replaceBlockById is undoable', () => {
+    const store = createEditorStore([{ id: 'a', type: 'paragraph', data: { text: 'hi' } }]);
+    store
+      .getState()
+      .replaceBlockById('a', { id: 'b', type: 'heading', data: { text: '', level: '2' } });
+    store.getState().undo();
+    expect(store.getState().history.present[0]).toEqual({
+      id: 'a',
+      type: 'paragraph',
+      data: { text: 'hi' },
+    });
   });
 
   it('moveBlockTo reorders the tree and is undoable', () => {

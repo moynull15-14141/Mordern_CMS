@@ -41,22 +41,29 @@ export class BlockTreeSanitizer {
     return { ...body, blocks: rawBlocks.map((node: unknown) => this.sanitizeNode(node)) };
   }
 
-  /** Sanitizes a single reusable block's `{blockType, data}` — used by
-   * `ReusableBlocksService`, which stores one block, not a tree. Wraps
-   * into a one-node tree and unwraps, mirroring how
+  /** Sanitizes a single reusable block's `{blockType, data, children}` —
+   * used by `ReusableBlocksService`, which stores one block (with its own
+   * nested children, for container types), not a full Page/Article tree.
+   * Wraps into a one-node tree and unwraps, mirroring how
    * `ReusableBlocksService.assertValidBlockShape` already wraps for
-   * `BlockTreeValidator`. */
+   * `BlockTreeValidator`. `sanitizeNode` already recurses `children`
+   * (used for the Page/Article path above) — this just needs to pass them
+   * into and back out of that same wrap. */
   sanitizeBlockData(
     blockType: string,
     data: Record<string, unknown>,
+    children: unknown[] | undefined,
     options: SanitizeOptions = {}
-  ): Record<string, unknown> {
+  ): { data: Record<string, unknown>; children?: unknown[] } {
     const sanitized = this.sanitize(
-      { blocks: [{ id: 'sanitize-single-block', type: blockType, data }] },
+      { blocks: [{ id: 'sanitize-single-block', type: blockType, data, children }] },
       options
     );
-    const [node] = sanitized.blocks as Array<{ data: Record<string, unknown> }>;
-    return node.data;
+    const [node] = sanitized.blocks as Array<{
+      data: Record<string, unknown>;
+      children?: unknown[];
+    }>;
+    return { data: node.data, children: node.children };
   }
 
   private sanitizeNode(node: unknown): unknown {

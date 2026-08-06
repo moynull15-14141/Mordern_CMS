@@ -40,6 +40,7 @@ type EditorActions = Pick<
   | 'insertBlock'
   | 'updateBlockData'
   | 'updateBlockMeta'
+  | 'replaceBlockById'
   | 'removeBlockById'
   | 'moveBlockTo'
   | 'duplicateBlockById'
@@ -63,6 +64,7 @@ export function useEditorActions(): EditorActions {
       insertBlock: state.insertBlock,
       updateBlockData: state.updateBlockData,
       updateBlockMeta: state.updateBlockMeta,
+      replaceBlockById: state.replaceBlockById,
       removeBlockById: state.removeBlockById,
       moveBlockTo: state.moveBlockTo,
       duplicateBlockById: state.duplicateBlockById,

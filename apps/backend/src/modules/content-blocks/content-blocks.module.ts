@@ -5,6 +5,7 @@ import { PublicContentBlocksController } from './controllers/public-content-bloc
 import { ReusableBlockRepository } from './repositories/reusable-block.repository';
 import { ReusableBlockMapper } from './mappers/reusable-block.mapper';
 import { BlockTreeValidator } from './validators/block-tree.validator';
+import { ReusableBlockCycleValidator } from './validators/reusable-block-cycle.validator';
 import { BlockTreeSanitizer } from './sanitization/block-tree-sanitizer.service';
 import { ReusableBlocksService } from './services/reusable-blocks.service';
 import { PublicContentBlocksService } from './services/public-content-blocks.service';
@@ -31,6 +32,7 @@ import { PublicContentBlocksService } from './services/public-content-blocks.ser
     ReusableBlockRepository,
     ReusableBlockMapper,
     BlockTreeValidator,
+    ReusableBlockCycleValidator,
     BlockTreeSanitizer,
     ReusableBlocksService,
     PublicContentBlocksService,

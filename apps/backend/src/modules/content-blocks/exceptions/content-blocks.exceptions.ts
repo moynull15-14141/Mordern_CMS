@@ -55,3 +55,29 @@ export class ReusableBlockNameConflictException extends BusinessException {
     );
   }
 }
+
+/** `path` is the full reference chain, e.g. `['A', 'B', 'A']` — an
+ * authoring-time problem (bad input), same status class as
+ * `InvalidBlockTreeException`. */
+export class ReusableBlockCircularReferenceException extends BusinessException {
+  constructor(path: string[]) {
+    super(
+      BusinessErrorCode.RULE_VIOLATION,
+      `Saving this reusable block would create a circular reference: ${path.join(' → ')}.`,
+      HttpStatus.BAD_REQUEST
+    );
+  }
+}
+
+/** A state conflict (the resource exists and is valid, but the requested
+ * action is unsafe right now) — same status class as
+ * `ReusableBlockAlreadyDeletedException`. */
+export class ReusableBlockInUseException extends BusinessException {
+  constructor(id: string, usageCount: number) {
+    super(
+      BusinessErrorCode.CONFLICT,
+      `This reusable block cannot be deleted — it is still used in ${usageCount} place${usageCount === 1 ? '' : 's'}.`,
+      HttpStatus.CONFLICT
+    );
+  }
+}

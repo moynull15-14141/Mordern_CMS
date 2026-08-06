@@ -117,3 +117,37 @@ export function getSiblings(blocks: BlockNode[], parentId: string | null): Block
   const parent = findBlock(blocks, parentId);
   return parent?.children ?? [];
 }
+
+/** Structural (not reference) equality between two block trees. A
+ * controlled `value` prop can arrive as a new array/object reference that
+ * carries the exact same content (e.g. a parent re-render that rebuilds
+ * its props) — reference equality alone can't tell that apart from a
+ * genuine external change, which is what caused the hydrate loop this
+ * guards against (see `context/block-editor-provider.tsx` and
+ * `create-editor-store.ts`'s `hydrate`). */
+export function areBlockListsEqual(a: BlockNode[], b: BlockNode[]): boolean {
+  return deepEqual(a, b);
+}
+
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== typeof b || a === null || b === null) return false;
+
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((item, index) => deepEqual(item, b[index]));
+  }
+
+  if (typeof a === 'object') {
+    const aRecord = a as Record<string, unknown>;
+    const bRecord = b as Record<string, unknown>;
+    const aKeys = Object.keys(aRecord);
+    const bKeys = Object.keys(bRecord);
+    if (aKeys.length !== bKeys.length) return false;
+    return aKeys.every(
+      (key) => Object.hasOwn(bRecord, key) && deepEqual(aRecord[key], bRecord[key])
+    );
+  }
+
+  return false;
+}

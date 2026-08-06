@@ -13,6 +13,8 @@ function buildPrismaMock() {
       create: jest.fn(),
       update: jest.fn(),
     },
+    page: { findMany: jest.fn().mockResolvedValue([]) },
+    article: { findMany: jest.fn().mockResolvedValue([]) },
   } as unknown as PrismaService;
 }
 
@@ -136,5 +138,27 @@ describe('ReusableBlockRepository', () => {
     const data = { name: 'New Name' } as never;
     await repository.update('block-1', data);
     expect(prisma.reusableBlock.update).toHaveBeenCalledWith({ where: { id: 'block-1' }, data });
+  });
+
+  describe('findActivePageBodies / findActiveArticleBodies', () => {
+    it('scopes pages by siteId, excludes soft-deleted, and selects only the usage-scan fields', async () => {
+      const prisma = buildPrismaMock();
+      const repository = new ReusableBlockRepository(prisma);
+      await repository.findActivePageBodies('site-1');
+      expect(prisma.page.findMany).toHaveBeenCalledWith({
+        where: { siteId: 'site-1', deletedAt: null },
+        select: { id: true, title: true, slug: true, body: true },
+      });
+    });
+
+    it('scopes articles by siteId, excludes soft-deleted, and selects only the usage-scan fields', async () => {
+      const prisma = buildPrismaMock();
+      const repository = new ReusableBlockRepository(prisma);
+      await repository.findActiveArticleBodies('site-1');
+      expect(prisma.article.findMany).toHaveBeenCalledWith({
+        where: { siteId: 'site-1', deletedAt: null },
+        select: { id: true, title: true, slug: true, body: true },
+      });
+    });
   });
 });

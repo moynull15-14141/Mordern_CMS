@@ -12,12 +12,13 @@ import { getReusableBlock } from '../../services/content-blocks.service';
  * resolved from a different source," not a special case with its own
  * rendering path.
  *
- * A missing/deleted reference (`getReusableBlock` resolves `null`) or a
- * reusable block whose own type is *also* `reusable-block` (would recurse
- * forever — nothing in this codebase prevents authoring that today, since
- * the admin Reusable Blocks UI doesn't exist yet) both degrade to
- * rendering nothing, matching this module's "invalid/dangling reference →
- * render nothing, never throw" convention throughout.
+ * A missing/deleted reference (`getReusableBlock` resolves `null`) degrades
+ * to rendering nothing, matching this module's "invalid/dangling reference
+ * → render nothing, never throw" convention throughout. The backend now
+ * rejects authoring a reusable block whose reference graph would cycle back
+ * to itself (`ReusableBlockCycleValidator`, save-time) — the
+ * `resolved.blockType === 'reusable-block'` check below is kept anyway as
+ * defense-in-depth against stale/pre-migration data, not the primary guard.
  */
 export async function ReusableBlockRenderer({ block }: BlockComponentProps) {
   const reusableBlockId =
@@ -31,6 +32,7 @@ export async function ReusableBlockRenderer({ block }: BlockComponentProps) {
     id: resolved.id,
     type: resolved.blockType,
     data: resolved.data,
+    children: resolved.children,
   };
   return renderBlockList([resolvedNode]);
 }

@@ -6,6 +6,7 @@ import { useEditorActions, useEditorBlocks, useSelectedId } from '../../context/
 import { findBlock } from '../../state/block-tree.util';
 import { renderField } from './fields/render-field';
 import { ResponsiveVisibilityFields } from './responsive-visibility-fields';
+import { ReusableBlockActions } from './reusable-block-actions';
 
 /**
  * Generic property panel — renders whatever `BlockDefinition.fields` the
@@ -41,7 +42,12 @@ export function PropertyPanel() {
 
   return (
     <div className="space-y-4 p-4" aria-label={`${definition.label} properties`}>
-      <h3 className="text-sm font-semibold">{definition.label}</h3>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">{definition.label}</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <ReusableBlockActions block={selectedBlock} />
+        </div>
+      </div>
       {definition.fields.length === 0 ? (
         <p className="text-sm text-muted-foreground">This block has no editable properties.</p>
       ) : (

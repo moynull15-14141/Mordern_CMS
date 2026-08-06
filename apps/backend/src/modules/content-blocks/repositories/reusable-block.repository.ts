@@ -98,4 +98,28 @@ export class ReusableBlockRepository {
       data: { deletedAt: null, deletedBy: null, updatedBy: actorId },
     });
   }
+
+  /** For usage scanning (`ReusableBlocksService.computeUsages`) — Page/
+   * Article have no relational FK to ReusableBlock, so the caller walks
+   * `body.blocks` itself looking for matching `reusableBlockId`s. Queried
+   * directly (bypassing `PagesModule`/`ArticlesModule`) to avoid a
+   * circular module dependency — this repository already queries
+   * `this.prisma.site` directly in `getDefaultSite` for the same reason. */
+  async findActivePageBodies(
+    siteId: string
+  ): Promise<{ id: string; title: string; slug: string; body: Prisma.JsonValue }[]> {
+    return this.prisma.page.findMany({
+      where: { siteId, deletedAt: null },
+      select: { id: true, title: true, slug: true, body: true },
+    });
+  }
+
+  async findActiveArticleBodies(
+    siteId: string
+  ): Promise<{ id: string; title: string; slug: string; body: Prisma.JsonValue }[]> {
+    return this.prisma.article.findMany({
+      where: { siteId, deletedAt: null },
+      select: { id: true, title: true, slug: true, body: true },
+    });
+  }
 }

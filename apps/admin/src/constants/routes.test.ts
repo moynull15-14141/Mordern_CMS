@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { ARTICLE_ROUTES, CATEGORY_ROUTES, MEDIA_ROUTES, PROFILE_ROUTES, ROUTES, TAG_ROUTES, USER_ROUTES } from './routes';
+import {
+  ARTICLE_ROUTES,
+  CATEGORY_ROUTES,
+  MEDIA_ROUTES,
+  PROFILE_ROUTES,
+  REUSABLE_BLOCK_ROUTES,
+  ROUTES,
+  TAG_ROUTES,
+  USER_ROUTES,
+} from './routes';
 
 describe('USER_ROUTES (Frontend Milestone 3)', () => {
   it('new() builds /users/new', () => {
@@ -78,5 +87,19 @@ describe('MEDIA_ROUTES (Frontend Milestone 7)', () => {
 
   it('detail(id) builds /media/:id', () => {
     expect(MEDIA_ROUTES.detail('m1')).toBe('/media/m1');
+  });
+});
+
+describe('REUSABLE_BLOCK_ROUTES (Milestone 4)', () => {
+  it('new() builds /reusable-blocks/new', () => {
+    expect(REUSABLE_BLOCK_ROUTES.new()).toBe('/reusable-blocks/new');
+  });
+
+  it('detail(id) builds /reusable-blocks/:id', () => {
+    expect(REUSABLE_BLOCK_ROUTES.detail('rb-1')).toBe('/reusable-blocks/rb-1');
+  });
+
+  it('edit(id) builds /reusable-blocks/:id/edit', () => {
+    expect(REUSABLE_BLOCK_ROUTES.edit('rb-1')).toBe('/reusable-blocks/rb-1/edit');
   });
 });

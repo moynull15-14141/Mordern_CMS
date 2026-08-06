@@ -96,17 +96,37 @@ describe('BlockTreeSanitizer', () => {
 
   describe('sanitizeBlockData', () => {
     it('sanitizes a single reusable block’s data by blockType', () => {
-      const result = sanitizer.sanitizeBlockData('html-block', {
-        html: '<script>alert(1)</script><p>ok</p>',
-      });
-      expect(result.html).not.toContain('<script>');
-      expect(result.html).toContain('<p>ok</p>');
+      const result = sanitizer.sanitizeBlockData(
+        'html-block',
+        { html: '<script>alert(1)</script><p>ok</p>' },
+        undefined
+      );
+      expect(result.data.html).not.toContain('<script>');
+      expect(result.data.html).toContain('<p>ok</p>');
     });
 
     it('bypasses sanitization when trusted is true', () => {
       const raw = '<script>alert(1)</script>';
-      const result = sanitizer.sanitizeBlockData('html-block', { html: raw }, { trusted: true });
-      expect(result.html).toBe(raw);
+      const result = sanitizer.sanitizeBlockData('html-block', { html: raw }, undefined, {
+        trusted: true,
+      });
+      expect(result.data.html).toBe(raw);
+    });
+
+    it('sanitizes html-block nodes nested in the reusable block’s own children', () => {
+      const result = sanitizer.sanitizeBlockData('container', {}, [
+        { id: 'html-1', type: 'html-block', data: { html: '<script>alert(1)</script>' } },
+      ]);
+      const nestedHtml = (result.children as never[])[0]['data' as never][
+        'html' as never
+      ] as string;
+      expect(nestedHtml).not.toContain('<script>');
+    });
+
+    it('passes children through untouched when there are none to sanitize', () => {
+      const children = [{ id: 'p1', type: 'paragraph', data: { text: 'hi' } }];
+      const result = sanitizer.sanitizeBlockData('container', {}, children);
+      expect(result.children).toEqual(children);
     });
   });
 });

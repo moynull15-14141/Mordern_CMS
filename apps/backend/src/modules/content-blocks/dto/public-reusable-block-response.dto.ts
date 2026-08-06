@@ -14,4 +14,7 @@ export class PublicReusableBlockResponseDto {
 
   @ApiProperty({ type: Object })
   data!: unknown;
+
+  @ApiProperty({ type: [Object], required: false })
+  children?: unknown[];
 }

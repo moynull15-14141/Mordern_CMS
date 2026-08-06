@@ -8,8 +8,11 @@ export class ReusableBlockMapper {
     return {
       id: block.id,
       name: block.name,
+      description: block.description ?? null,
+      category: block.category ?? null,
       blockType: block.blockType,
       data: block.data,
+      children: (block.children as unknown[] | null) ?? null,
       createdAt: block.createdAt.toISOString(),
       updatedAt: block.updatedAt.toISOString(),
       deletedAt: block.deletedAt?.toISOString() ?? null,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  areBlockListsEqual,
   findBlock,
   findParentId,
   getSiblings,
@@ -108,5 +109,41 @@ describe('moveBlock', () => {
   it('returns the tree unchanged for a missing id', () => {
     const original = tree();
     expect(moveBlock(original, 'missing', null, 0)).toBe(original);
+  });
+});
+
+describe('areBlockListsEqual', () => {
+  it('is true for the same reference', () => {
+    const list = tree();
+    expect(areBlockListsEqual(list, list)).toBe(true);
+  });
+
+  it('is true for a structurally identical but differently-referenced tree', () => {
+    expect(areBlockListsEqual(tree(), tree())).toBe(true);
+  });
+
+  it('is true for two separately-constructed empty arrays', () => {
+    expect(areBlockListsEqual([], [])).toBe(true);
+  });
+
+  it('is false when a nested data value differs', () => {
+    const other = tree();
+    other[1].children![0].data = { text: 'changed' };
+    expect(areBlockListsEqual(tree(), other)).toBe(false);
+  });
+
+  it('is false when block order differs', () => {
+    const reordered = [...tree()].reverse();
+    expect(areBlockListsEqual(tree(), reordered)).toBe(false);
+  });
+
+  it('is false when lengths differ', () => {
+    expect(areBlockListsEqual(tree(), tree().slice(0, 1))).toBe(false);
+  });
+
+  it('is false when an optional field (meta) is present on only one side', () => {
+    const withMeta = tree();
+    withMeta[0].meta = { anchor: 'top' };
+    expect(areBlockListsEqual(tree(), withMeta)).toBe(false);
   });
 });

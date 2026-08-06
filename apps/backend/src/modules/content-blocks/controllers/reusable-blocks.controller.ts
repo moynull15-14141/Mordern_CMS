@@ -21,6 +21,7 @@ import { CreateReusableBlockDto } from '../dto/create-reusable-block.dto';
 import { UpdateReusableBlockDto } from '../dto/update-reusable-block.dto';
 import { ReusableBlockQueryDto } from '../dto/reusable-block-query.dto';
 import { ReusableBlockResponseDto } from '../dto/reusable-block-response.dto';
+import { ReusableBlockUsageReferenceDto } from '../dto/reusable-block-usage.dto';
 import { PaginatedResult } from '../../../common/dto/pagination.dto';
 
 /**
@@ -104,5 +105,13 @@ export class ReusableBlocksController {
     @CurrentUser() user: AuthenticatedUser
   ): Promise<ReusableBlockResponseDto> {
     return this.reusableBlocksService.restoreReusableBlock(id, { id: user.id });
+  }
+
+  @Get(':id/usages')
+  @ApiOperation({ summary: 'List every Page/Article that references this reusable block' })
+  @ApiParam({ name: 'id' })
+  @ApiWrappedResponse(ReusableBlockUsageReferenceDto, { isArray: true })
+  async getUsages(@Param('id') id: string): Promise<ReusableBlockUsageReferenceDto[]> {
+    return this.reusableBlocksService.getUsages(id);
   }
 }

@@ -16,6 +16,7 @@ export const ROUTES = {
   COMMENTS: '/comments',
   SEO: '/seo',
   PAGES: '/pages',
+  REUSABLE_BLOCKS: '/reusable-blocks',
   THEMES: '/themes',
   LAYOUTS: '/layouts',
   USERS: '/users',
@@ -89,6 +90,15 @@ export const PAGE_ROUTES = {
   new: () => `${ROUTES.PAGES}/new`,
   detail: (id: string) => `${ROUTES.PAGES}/${id}`,
   edit: (id: string) => `${ROUTES.PAGES}/${id}/edit`,
+};
+
+/** Milestone 4 (Reusable Blocks Management) — id-scoped path builders,
+ * additive to `ROUTES`. No `/reusable-blocks/:id/preview` — the same
+ * "Detail page serves as the preview" precedent `THEME_ROUTES` sets. */
+export const REUSABLE_BLOCK_ROUTES = {
+  new: () => `${ROUTES.REUSABLE_BLOCKS}/new`,
+  detail: (id: string) => `${ROUTES.REUSABLE_BLOCKS}/${id}`,
+  edit: (id: string) => `${ROUTES.REUSABLE_BLOCKS}/${id}/edit`,
 };
 
 /** Frontend Milestone 12 — id-scoped path builders, additive to `ROUTES`.

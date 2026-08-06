@@ -58,4 +58,18 @@ describe('ReusableBlockRenderer', () => {
     });
     expect(element).toBeNull();
   });
+
+  it('renders a resolved container block’s children (Milestone 4: reusable blocks now carry children)', async () => {
+    getReusableBlockMock.mockResolvedValue({
+      id: 'rb-1',
+      blockType: 'container',
+      data: {},
+      children: [{ id: 'c1', type: 'paragraph', data: { text: 'Nested paragraph' } }],
+    });
+    const element = await ReusableBlockRenderer({
+      block: { id: 'b1', type: 'reusable-block', data: { reusableBlockId: 'rb-1' } },
+    });
+    render(<>{element}</>);
+    expect(screen.getByText('Nested paragraph')).toBeInTheDocument();
+  });
 });
