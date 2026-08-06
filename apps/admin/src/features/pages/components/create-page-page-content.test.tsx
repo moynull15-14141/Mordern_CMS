@@ -10,6 +10,9 @@ const pushMock = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: pushMock }) }));
 vi.mock('../services/pages.api', () => ({ pagesApi: { create: vi.fn() } }));
 vi.mock('@/lib/toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock('@/features/block-editor/hooks/use-reusable-blocks', () => ({
+  useReusableBlocks: () => ({ data: { data: [] }, isLoading: false }),
+}));
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -31,12 +34,11 @@ describe('CreatePagePageContent', () => {
     render(<CreatePagePageContent />, { wrapper: wrapper() });
 
     await user.type(screen.getByLabelText('Title'), 'About Us');
-    await user.type(screen.getByLabelText(/Content/), 'Some body text');
     await user.click(screen.getByRole('button', { name: 'Create page' }));
 
     await waitFor(() =>
       expect(pagesApi.create).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'About Us', body: { text: 'Some body text' } })
+        expect.objectContaining({ title: 'About Us', body: { blocks: [] } })
       )
     );
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/pages/p1'));

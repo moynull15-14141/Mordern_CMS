@@ -3,6 +3,8 @@ import { AuditLoggerService } from '../../../core/logger/audit-logger.service';
 import { PagesRepository, PageWithRelations } from '../repositories/pages.repository';
 import { PagesValidator } from '../validators/pages.validator';
 import { PagesMapper } from '../mappers/pages.mapper';
+import { BlockTreeValidator } from '../../content-blocks/validators/block-tree.validator';
+import { BlockTreeSanitizer } from '../../content-blocks/sanitization/block-tree-sanitizer.service';
 import {
   PageAlreadyDeletedException,
   PageInvalidStatusTransitionException,
@@ -53,6 +55,8 @@ function buildService() {
     repository,
     new PagesValidator(),
     new PagesMapper(),
+    new BlockTreeValidator(),
+    new BlockTreeSanitizer(),
     auditLogger
   );
 
@@ -70,7 +74,7 @@ describe('PagesService', () => {
         .mockResolvedValueOnce(null);
       (repository.create as jest.Mock).mockResolvedValue(buildPage({ slug: 'about-us-2' }));
 
-      await service.createPage({ title: 'About Us', body: {} } as never, actor);
+      await service.createPage({ title: 'About Us', body: { blocks: [] } } as never, actor);
 
       expect(repository.create).toHaveBeenCalledWith(
         expect.objectContaining({ slug: 'about-us-2' })
@@ -82,7 +86,10 @@ describe('PagesService', () => {
       (repository.findBySlug as jest.Mock).mockResolvedValue({ id: 'other' });
 
       await expect(
-        service.createPage({ title: 'About Us', slug: 'about-us', body: {} } as never, actor)
+        service.createPage(
+          { title: 'About Us', slug: 'about-us', body: { blocks: [] } } as never,
+          actor
+        )
       ).rejects.toThrow(PageSlugConflictException);
     });
 
@@ -91,7 +98,7 @@ describe('PagesService', () => {
       (repository.create as jest.Mock).mockResolvedValue(buildPage());
 
       await service.createPage(
-        { title: 'About Us', body: {}, seo: { title: 'SEO Title' } } as never,
+        { title: 'About Us', body: { blocks: [] }, seo: { title: 'SEO Title' } } as never,
         actor
       );
 

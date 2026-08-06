@@ -3,7 +3,7 @@ import { updateArticleSchema } from './update-article.schema';
 
 const validBase = {
   title: 'Hello World',
-  bodyText: 'Some content',
+  body: [],
   status: 'DRAFT' as const,
 };
 
@@ -13,11 +13,15 @@ describe('updateArticleSchema', () => {
   });
 
   it('rejects PUBLISHED (only settable via the dedicated Publish action)', () => {
-    expect(updateArticleSchema.safeParse({ ...validBase, status: 'PUBLISHED' }).success).toBe(false);
+    expect(updateArticleSchema.safeParse({ ...validBase, status: 'PUBLISHED' }).success).toBe(
+      false
+    );
   });
 
   it('rejects SCHEDULED (only settable via the dedicated Schedule action)', () => {
-    expect(updateArticleSchema.safeParse({ ...validBase, status: 'SCHEDULED' }).success).toBe(false);
+    expect(updateArticleSchema.safeParse({ ...validBase, status: 'SCHEDULED' }).success).toBe(
+      false
+    );
   });
 
   it('accepts REVIEW and ARCHIVED', () => {

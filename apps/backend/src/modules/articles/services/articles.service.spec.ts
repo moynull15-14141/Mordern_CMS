@@ -5,6 +5,8 @@ import { AuditLoggerService } from '../../../core/logger/audit-logger.service';
 import { ArticlesRepository, ArticleWithRelations } from '../repositories/articles.repository';
 import { ArticlesValidator } from '../validators/articles.validator';
 import { ArticlesMapper } from '../mappers/articles.mapper';
+import { BlockTreeValidator } from '../../content-blocks/validators/block-tree.validator';
+import { BlockTreeSanitizer } from '../../content-blocks/sanitization/block-tree-sanitizer.service';
 import {
   ArticleAlreadyDeletedException,
   ArticleNotDeletedException,
@@ -87,6 +89,8 @@ function buildService() {
     new ArticlesValidator(),
     new ArticlesMapper(),
     authorizationService,
+    new BlockTreeValidator(),
+    new BlockTreeSanitizer(),
     auditLogger
   );
 
@@ -102,7 +106,13 @@ describe('ArticlesService', () => {
       (repository.findAuthorById as jest.Mock).mockResolvedValue(null);
       await expect(
         service.createArticle(
-          { title: 'T', body: {}, authorId: 'missing', language: 'en', locale: 'en-US' } as never,
+          {
+            title: 'T',
+            body: { blocks: [] },
+            authorId: 'missing',
+            language: 'en',
+            locale: 'en-US',
+          } as never,
           actor
         )
       ).rejects.toThrow(AuthorNotFoundException);
@@ -117,7 +127,7 @@ describe('ArticlesService', () => {
       await service.createArticle(
         {
           title: 'Hello World',
-          body: {},
+          body: { blocks: [] },
           authorId: 'author-1',
           language: 'en',
           locale: 'en-US',
@@ -138,7 +148,7 @@ describe('ArticlesService', () => {
           {
             title: 'Hello World',
             slug: 'taken-slug',
-            body: {},
+            body: { blocks: [] },
             authorId: 'author-1',
             language: 'en',
             locale: 'en-US',
@@ -157,7 +167,7 @@ describe('ArticlesService', () => {
       await service.createArticle(
         {
           title: 'Hello World',
-          body: {},
+          body: { blocks: [] },
           authorId: 'author-1',
           tagIds: ['tag-1'],
           language: 'en',
@@ -297,7 +307,7 @@ describe('ArticlesService', () => {
         version: 1,
         title: 't',
         summary: null,
-        body: {},
+        body: { blocks: [] },
         status: ContentStatus.DRAFT,
         authorId: 'author-1',
         comment: null,

@@ -23,4 +23,5 @@ export const PUBLIC_API_ROUTES = {
     if (slug) params.set('slug', slug);
     return `/public/layouts/resolve?${params.toString()}`;
   },
+  REUSABLE_BLOCK_BY_ID: (id: string) => `/public/content-blocks/reusable/${id}`,
 } as const;

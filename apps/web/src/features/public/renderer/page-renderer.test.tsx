@@ -52,6 +52,25 @@ describe('PageRenderer', () => {
     expect(screen.getByText('Learn about us')).toBeInTheDocument();
   });
 
+  it('renders the page body through the Rich Content Engine block renderer', () => {
+    render(
+      <PageRenderer
+        context={{
+          ...baseContext,
+          content: {
+            type: 'page',
+            title: 'About Us',
+            slug: 'about-us',
+            body: { blocks: [{ id: 'b1', type: 'paragraph', data: { text: 'Our story' } }] },
+            publishedAt: null,
+            seo: null,
+          },
+        }}
+      />
+    );
+    expect(screen.getByText('Our story')).toBeInTheDocument();
+  });
+
   it('never renders id/status (neither field exists on the public shape)', () => {
     render(
       <PageRenderer

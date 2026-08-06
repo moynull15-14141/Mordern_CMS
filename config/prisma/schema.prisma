@@ -579,6 +579,7 @@ model Site {
   themes            Theme[]
   layouts           Layout[]
   layoutAssignments LayoutAssignment[]
+  reusableBlocks    ReusableBlock[]
 
   @@index([tenantId, slug])
   @@index([domain])
@@ -1467,4 +1468,35 @@ model LayoutAssignment {
   @@index([siteId, contentType, categoryId])
   @@index([layoutId])
   @@map("layout_assignments")
+}
+
+/// A named, saved block — authored once in the Reusable Blocks library and
+/// inserted by reference (a `reusable-block` node in an `Article`/`Page`
+/// `body` block tree, `data: { reusableBlockId }`) into any number of
+/// articles/pages (Rich Content Engine, Phase 1 / Step 1). `blockType` is
+/// an open-ended String, not an enum — same "a block type can be named
+/// without a migration" reasoning `Layout.layoutPreset` already establishes;
+/// the real, closed set of valid values is
+/// `apps/backend/src/modules/content-blocks/block-schema/block-types.ts`'s
+/// `BLOCK_TYPES`, validated at the application layer by `BlockTreeValidator`,
+/// not the database. `data` is `Json` for the same reason every other
+/// block's `data` is — its shape depends on `blockType`.
+model ReusableBlock {
+  id        String @id @default(uuid()) @db.Uuid
+  siteId    String @map("site_id") @db.Uuid
+  name      String
+  blockType String @map("block_type")
+  data      Json
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy String?   @map("created_by") @db.Uuid
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy String?   @map("updated_by") @db.Uuid
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@map("reusable_blocks")
 }

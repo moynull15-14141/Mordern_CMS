@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import type { RenderContext } from '../types/render-context.types';
 import type { PublicArticleContent } from '../types/content.types';
+import { BlockRenderer } from '../block-renderer/block-renderer';
+import { parseBlocks } from '../block-renderer/utils/parse-blocks.util';
 
 function formatDate(iso: string | null): string | null {
   if (!iso) return null;
@@ -9,9 +11,8 @@ function formatDate(iso: string | null): string | null {
 
 /**
  * Renders a resolved `Article` — title, author, publish date, category,
- * content, SEO (milestone brief). `body` is an inert placeholder — see
- * `page-renderer.tsx`'s doc comment; the same Block/Rich-Content Engine
- * scope boundary applies.
+ * content, SEO. `body` renders through the Rich Content Engine's
+ * `BlockRenderer` (Phase 1 / Step 1) — see `block-renderer/block-renderer.tsx`.
  *
  * **No cover image is rendered.** `GET /public/articles/slug/:slug`
  * exposes no image URL field — `Article.featuredMediaId` exists on the
@@ -75,12 +76,8 @@ export function ArticleRenderer({ context }: { context: RenderContext }) {
           </ul>
         ) : null}
 
-        <div
-          data-testid="article-body-placeholder"
-          aria-hidden
-          className="prose mt-8 max-w-none text-gray-700"
-        >
-          {/* Placeholder only — see this file's doc comment. */}
+        <div className="mt-8 max-w-none space-y-4">
+          <BlockRenderer blocks={parseBlocks(content.body)} />
         </div>
       </div>
     </article>

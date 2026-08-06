@@ -3,6 +3,8 @@ import { ContentStatus, Prisma } from '@prisma/client';
 import { AuditLoggerService } from '../../../core/logger/audit-logger.service';
 import { PaginatedResult, buildPaginatedResult } from '../../../common/dto/pagination.dto';
 import { generateSlugFromTitle, normalizeSlug, uniquifySlug } from '../../articles/utils/slug.util';
+import { BlockTreeValidator } from '../../content-blocks/validators/block-tree.validator';
+import { BlockTreeSanitizer } from '../../content-blocks/sanitization/block-tree-sanitizer.service';
 import { PagesRepository, PageWithRelations } from '../repositories/pages.repository';
 import { PagesValidator } from '../validators/pages.validator';
 import { PagesMapper } from '../mappers/pages.mapper';
@@ -34,6 +36,8 @@ export class PagesService {
     private readonly repository: PagesRepository,
     private readonly validator: PagesValidator,
     private readonly mapper: PagesMapper,
+    private readonly blockTreeValidator: BlockTreeValidator,
+    private readonly blockTreeSanitizer: BlockTreeSanitizer,
     private readonly auditLogger: AuditLoggerService
   ) {}
 
@@ -69,6 +73,8 @@ export class PagesService {
   }
 
   async createPage(dto: CreatePageDto, actor: ActingUser): Promise<PageResponseDto> {
+    this.blockTreeValidator.assertValid(dto.body);
+    const sanitizedBody = this.blockTreeSanitizer.sanitize(dto.body);
     const site = await this.repository.getDefaultSite();
     const slug = await this.resolveUniqueSlug(dto.slug, dto.title, site.id);
 
@@ -86,7 +92,7 @@ export class PagesService {
       site: { connect: { id: site.id } },
       title: dto.title,
       slug,
-      body: dto.body as Prisma.InputJsonValue,
+      body: sanitizedBody as Prisma.InputJsonValue,
       seoMeta: seoMetaId ? { connect: { id: seoMetaId } } : undefined,
       createdBy: actor.id,
       updatedBy: actor.id,
@@ -130,6 +136,11 @@ export class PagesService {
   async updatePage(id: string, dto: UpdatePageDto, actor: ActingUser): Promise<PageResponseDto> {
     const existing = await this.getPageOrThrow(id);
     this.validator.assertGenericUpdateStatus(dto.status);
+    let sanitizedBody: Record<string, unknown> | undefined;
+    if (dto.body !== undefined) {
+      this.blockTreeValidator.assertValid(dto.body);
+      sanitizedBody = this.blockTreeSanitizer.sanitize(dto.body);
+    }
 
     const site = await this.repository.getDefaultSite();
     const slug =
@@ -150,7 +161,7 @@ export class PagesService {
     const updated = await this.repository.update(id, {
       title: dto.title,
       slug,
-      body: dto.body as Prisma.InputJsonValue | undefined,
+      body: sanitizedBody as Prisma.InputJsonValue | undefined,
       status: dto.status as ContentStatus | undefined,
       seoMeta: seoMetaId ? { connect: { id: seoMetaId } } : undefined,
       updatedBy: actor.id,

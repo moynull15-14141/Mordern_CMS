@@ -4,6 +4,8 @@ import { AuditLoggerService } from '../../../core/logger/audit-logger.service';
 import { PaginatedResult, buildPaginatedResult } from '../../../common/dto/pagination.dto';
 import { AuthorizationService } from '../../authorization/services/authorization.service';
 import { ArticlePolicySubject } from '../../authorization/policies/article.policy';
+import { BlockTreeValidator } from '../../content-blocks/validators/block-tree.validator';
+import { BlockTreeSanitizer } from '../../content-blocks/sanitization/block-tree-sanitizer.service';
 import { ArticlesRepository, ArticleWithRelations } from '../repositories/articles.repository';
 import { ArticlesValidator } from '../validators/articles.validator';
 import { ArticlesMapper } from '../mappers/articles.mapper';
@@ -41,6 +43,8 @@ export class ArticlesService {
     private readonly validator: ArticlesValidator,
     private readonly mapper: ArticlesMapper,
     private readonly authorizationService: AuthorizationService,
+    private readonly blockTreeValidator: BlockTreeValidator,
+    private readonly blockTreeSanitizer: BlockTreeSanitizer,
     private readonly auditLogger: AuditLoggerService
   ) {}
 
@@ -163,6 +167,8 @@ export class ArticlesService {
    * which is harmless and was never the risk the audit identified.
    */
   async createArticle(dto: CreateArticleDto, actor: ActingUser): Promise<ArticleResponseDto> {
+    this.blockTreeValidator.assertValid(dto.body);
+    const sanitizedBody = this.blockTreeSanitizer.sanitize(dto.body);
     await this.validateReferences(dto);
     const site = await this.repository.getDefaultSite();
     const slug = await this.resolveUniqueSlug(dto.slug, dto.title, site.id);
@@ -189,7 +195,7 @@ export class ArticlesService {
           subtitle: dto.subtitle,
           slug,
           summary: dto.summary,
-          body: dto.body as Prisma.InputJsonValue,
+          body: sanitizedBody as Prisma.InputJsonValue,
           visibility: dto.visibility,
           language: dto.language,
           locale: dto.locale,
@@ -257,6 +263,11 @@ export class ArticlesService {
     const existing = await this.getArticleOrThrow(id);
     await this.assertCanEdit(existing, actor, 'update');
     this.validator.assertGenericUpdateStatus(dto.status);
+    let sanitizedBody: Record<string, unknown> | undefined;
+    if (dto.body !== undefined) {
+      this.blockTreeValidator.assertValid(dto.body);
+      sanitizedBody = this.blockTreeSanitizer.sanitize(dto.body);
+    }
     await this.validateReferences(dto);
 
     await this.snapshotRevision(existing, dto.revisionComment);
@@ -282,7 +293,7 @@ export class ArticlesService {
       subtitle: dto.subtitle,
       slug,
       summary: dto.summary,
-      body: dto.body as Prisma.InputJsonValue | undefined,
+      body: sanitizedBody as Prisma.InputJsonValue | undefined,
       status: dto.status as ContentStatus | undefined,
       primaryCategory: dto.primaryCategoryId
         ? { connect: { id: dto.primaryCategoryId } }

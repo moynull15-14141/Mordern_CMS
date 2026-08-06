@@ -166,5 +166,15 @@ export const API_ENDPOINTS = {
     byId: (id: string) => `/layout-assignments/${id}`,
     restore: (id: string) => `/layout-assignments/${id}/restore`,
   },
+  /** Rich Content Engine (Phase 1 / Step 1, Milestone 3) — sub-paths
+   * verified directly against
+   * `apps/backend/src/modules/content-blocks/controllers/reusable-blocks.controller.ts`.
+   * Gated by the `page.manage` permission (reused, not a dedicated
+   * permission — see that controller's own doc comment). */
+  CONTENT_BLOCKS: {
+    REUSABLE_ROOT: '/content-blocks/reusable',
+    reusableById: (id: string) => `/content-blocks/reusable/${id}`,
+    reusableRestore: (id: string) => `/content-blocks/reusable/${id}/restore`,
+  },
   HEALTH: '/health',
 } as const;

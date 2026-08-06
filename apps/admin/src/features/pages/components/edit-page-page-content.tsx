@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/feedback/error-state';
 import { PAGE_ROUTES } from '@/constants/routes';
 import { isApiError } from '@/lib/api-error';
+import type { BlockNode } from '@/features/block-editor';
 import { usePage } from '../hooks/use-page';
 import { useUpdatePage } from '../hooks/use-update-page';
 import { EditPageForm } from './page-form';
@@ -15,27 +16,29 @@ import type { UpdatePageFormValues } from '../schemas/update-page.schema';
 import type { GenericUpdateStatus, Page, UpdatePageInput } from '../types/page';
 
 /** `body` is an arbitrary `Record<string, unknown>` (`@IsObject()`, no
- * nested DTO) — this milestone's own placeholder writer always stores
- * `{ text: string }` (see `create-page.schema.ts`), so that's read back
- * directly; anything else is shown as its raw JSON rather than silently
- * dropped. */
-function bodyToText(body: unknown): string {
+ * nested DTO) — the Block Editor always stores `{ blocks: BlockNode[] }`
+ * (see `create-page.schema.ts`), so that's read back directly; any other
+ * shape (content written before Milestone 3, or hand-seeded data)
+ * degrades to an empty block list rather than crashing the edit form —
+ * same convention `articles/components/edit-article-page-content.tsx`'s
+ * `bodyToBlocks` establishes. */
+function bodyToBlocks(body: unknown): BlockNode[] {
   if (
     body &&
     typeof body === 'object' &&
-    'text' in body &&
-    typeof (body as { text: unknown }).text === 'string'
+    'blocks' in body &&
+    Array.isArray((body as { blocks: unknown }).blocks)
   ) {
-    return (body as { text: string }).text;
+    return (body as { blocks: unknown[] }).blocks as BlockNode[];
   }
-  return JSON.stringify(body ?? {});
+  return [];
 }
 
 function toFormDefaults(page: Page): UpdatePageFormValues {
   return {
     title: page.title,
     slug: page.slug,
-    bodyText: bodyToText(page.body),
+    body: bodyToBlocks(page.body),
     status: (page.status === 'PUBLISHED' || page.status === 'SCHEDULED' || page.status === 'DELETED'
       ? 'DRAFT'
       : page.status) as GenericUpdateStatus,
@@ -62,7 +65,7 @@ function toUpdateInput(values: UpdatePageFormValues): UpdatePageInput {
   return {
     title: values.title,
     slug: values.slug || undefined,
-    body: { text: values.bodyText },
+    body: { blocks: values.body },
     status: values.status,
     seo: hasSeo
       ? {

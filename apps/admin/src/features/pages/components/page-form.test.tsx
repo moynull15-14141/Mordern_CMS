@@ -3,12 +3,20 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CreatePageForm, EditPageForm } from './page-form';
 
+// The Content field is now the Block Editor (Milestone 3) — its only
+// data-fetching hook is the reusable-block picker's, mocked here so it
+// never needs a real QueryClientProvider/backend.
+vi.mock('@/features/block-editor/hooks/use-reusable-blocks', () => ({
+  useReusableBlocks: () => ({ data: { data: [] }, isLoading: false }),
+}));
+
 describe('CreatePageForm', () => {
   it('renders the core fields', () => {
     render(<CreatePageForm onSubmit={vi.fn()} isSubmitting={false} />);
     expect(screen.getByLabelText('Title')).toBeInTheDocument();
     expect(screen.getByLabelText('Slug')).toBeInTheDocument();
-    expect(screen.getByLabelText(/Content/)).toBeInTheDocument();
+    expect(screen.getByText('Content')).toBeInTheDocument();
+    expect(screen.getByTestId('block-editor')).toBeInTheDocument();
   });
 
   it('does not render a status field (CreatePageDto has none)', () => {
@@ -21,7 +29,6 @@ describe('CreatePageForm', () => {
     const user = userEvent.setup();
     render(<CreatePageForm onSubmit={onSubmit} isSubmitting={false} />);
 
-    await user.type(screen.getByLabelText(/Content/), 'body text');
     await user.click(screen.getByRole('button', { name: 'Create page' }));
 
     await waitFor(() => expect(screen.getByText('Title is required.')).toBeInTheDocument());
@@ -34,12 +41,11 @@ describe('CreatePageForm', () => {
     render(<CreatePageForm onSubmit={onSubmit} isSubmitting={false} />);
 
     await user.type(screen.getByLabelText('Title'), 'About Us');
-    await user.type(screen.getByLabelText(/Content/), 'Some body text');
     await user.click(screen.getByRole('button', { name: 'Create page' }));
 
     await waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'About Us', bodyText: 'Some body text' })
+        expect.objectContaining({ title: 'About Us', body: [] })
       )
     );
   });
@@ -49,7 +55,7 @@ describe('EditPageForm', () => {
   const defaultValues = {
     title: 'About Us',
     slug: 'about-us',
-    bodyText: 'Some body text',
+    body: [],
     status: 'DRAFT' as const,
   };
 

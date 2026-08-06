@@ -23,7 +23,7 @@ function toCreateInput(values: CreatePageFormValues): CreatePageInput {
   return {
     title: values.title,
     slug: values.slug || undefined,
-    body: { text: values.bodyText },
+    body: { blocks: values.body },
     seo: hasSeo
       ? {
           title: values.seo?.title || undefined,

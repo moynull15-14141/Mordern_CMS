@@ -14,13 +14,18 @@ vi.mock('../services/articles.api', () => ({ articlesApi: { get: vi.fn(), update
 vi.mock('../services/categories.api', () => ({ categoriesApi: { listFlat: vi.fn() } }));
 vi.mock('../services/tags.api', () => ({ tagsApi: { list: vi.fn() } }));
 vi.mock('@/lib/toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock('@/features/block-editor/hooks/use-reusable-blocks', () => ({
+  useReusableBlocks: () => ({ data: { data: [] }, isLoading: false }),
+}));
 
 afterEach(() => {
   vi.clearAllMocks();
 });
 
 function wrapper() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   return function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
@@ -32,7 +37,7 @@ const targetArticle = {
   subtitle: null,
   slug: 'hello-world',
   summary: null,
-  body: { text: 'Original content' },
+  body: { blocks: [{ id: 'b1', type: 'paragraph', data: { text: 'Original content' } }] },
   status: 'DRAFT' as const,
   publishedAt: null,
   scheduledAt: null,
@@ -61,7 +66,10 @@ describe('EditArticlePageContent', () => {
     render(<EditArticlePageContent articleId="a1" />, { wrapper: wrapper() });
 
     await waitFor(() => expect(screen.getByLabelText('Title')).toHaveValue('Hello World'));
-    expect(screen.getByLabelText(/Content/)).toHaveValue('Original content');
+    // The article's one stored block loaded into the editor as a real row
+    // (not the empty-state message) — confirms `bodyToBlocks` correctly
+    // unwrapped `{ blocks: [...] }` into the Block Editor's value.
+    expect(screen.getByTestId('block-row-b1')).toBeInTheDocument();
     expect(articlesApi.get).toHaveBeenCalledWith('a1');
   });
 
@@ -109,7 +117,10 @@ describe('EditArticlePageContent', () => {
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
-      expect(articlesApi.update).toHaveBeenCalledWith('a1', expect.objectContaining({ title: 'New Title' })),
+      expect(articlesApi.update).toHaveBeenCalledWith(
+        'a1',
+        expect.objectContaining({ title: 'New Title' })
+      )
     );
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/articles/a1'));
   });

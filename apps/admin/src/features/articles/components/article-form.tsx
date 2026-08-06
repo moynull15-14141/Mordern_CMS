@@ -2,28 +2,49 @@
 
 import { useEffect } from 'react';
 import { useAppForm } from '@/hooks/use-app-form';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/form/form';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/form/form';
 import { FormSubmitButton } from '@/components/form/form-submit-button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { BlockEditor } from '@/features/block-editor';
 import { CategorySelect } from './category-select';
 import { TagMultiSelect } from './tag-multi-select';
 import { FeaturedImageField } from './featured-image-field';
 import { SeoFields } from './seo-fields';
 import { GENERIC_UPDATE_STATUS_OPTIONS, VISIBILITY_OPTIONS } from '../constants/article.constants';
-import { createArticleSchema, type CreateArticleFormValues } from '../schemas/create-article.schema';
-import { updateArticleSchema, type UpdateArticleFormValues } from '../schemas/update-article.schema';
+import {
+  createArticleSchema,
+  type CreateArticleFormValues,
+} from '../schemas/create-article.schema';
+import {
+  updateArticleSchema,
+  type UpdateArticleFormValues,
+} from '../schemas/update-article.schema';
 
 /**
  * Two related, colocated forms (not one generically-typed component) since
  * `CreateArticleDto`/`UpdateArticleDto` are genuinely different shapes
  * (`authorId`/`language`/`locale` exist only on create; `status` only on
  * update) — same reasoning `features/users/components/user-form.tsx`
- * established. The Content field is a deliberate placeholder textarea, not
- * a rich editor (out of this milestone's scope) — see `bodyText` in
- * `create-article.schema.ts`.
+ * established. The Content field is the Rich Content Engine's Block
+ * Editor (Milestone 3, `@/features/block-editor`) — this form only
+ * *consumes* it as a controlled field, same as `TagMultiSelect`/
+ * `CategorySelect`; it has no knowledge of the editor's internals.
  */
 
 export interface CreateArticleFormProps {
@@ -33,14 +54,19 @@ export interface CreateArticleFormProps {
   onDirtyChange?: (dirty: boolean) => void;
 }
 
-export function CreateArticleForm({ onSubmit, isSubmitting, submitError, onDirtyChange }: CreateArticleFormProps) {
+export function CreateArticleForm({
+  onSubmit,
+  isSubmitting,
+  submitError,
+  onDirtyChange,
+}: CreateArticleFormProps) {
   const form = useAppForm(createArticleSchema, {
     defaultValues: {
       title: '',
       subtitle: '',
       slug: '',
       summary: '',
-      bodyText: '',
+      body: [],
       authorId: '',
       primaryCategoryId: '',
       tagIds: [],
@@ -129,12 +155,12 @@ export function CreateArticleForm({ onSubmit, isSubmitting, submitError, onDirty
 
         <FormField
           control={form.control}
-          name="bodyText"
+          name="body"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Content (plain text placeholder — rich editor coming later)</FormLabel>
+              <FormLabel>Content</FormLabel>
               <FormControl>
-                <Textarea rows={10} {...field} />
+                <BlockEditor value={field.value} onChange={field.onChange} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -162,7 +188,11 @@ export function CreateArticleForm({ onSubmit, isSubmitting, submitError, onDirty
             <FormItem>
               <FormLabel>Category</FormLabel>
               <FormControl>
-                <CategorySelect value={field.value ?? ''} onChange={field.onChange} onBlur={field.onBlur} />
+                <CategorySelect
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -372,12 +402,12 @@ export function EditArticleForm({
 
         <FormField
           control={form.control}
-          name="bodyText"
+          name="body"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Content (plain text placeholder — rich editor coming later)</FormLabel>
+              <FormLabel>Content</FormLabel>
               <FormControl>
-                <Textarea rows={10} {...field} />
+                <BlockEditor value={field.value} onChange={field.onChange} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -416,7 +446,11 @@ export function EditArticleForm({
             <FormItem>
               <FormLabel>Category</FormLabel>
               <FormControl>
-                <CategorySelect value={field.value ?? ''} onChange={field.onChange} onBlur={field.onBlur} />
+                <CategorySelect
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -506,7 +540,10 @@ export function EditArticleForm({
           )}
         />
 
-        <FormSubmitButton isLoading={isSubmitting} disabled={isSubmitting || !form.formState.isDirty}>
+        <FormSubmitButton
+          isLoading={isSubmitting}
+          disabled={isSubmitting || !form.formState.isDirty}
+        >
           Save changes
         </FormSubmitButton>
       </form>

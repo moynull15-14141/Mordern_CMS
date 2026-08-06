@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthorizationModule } from '../authorization/authorization.module';
+import { ContentBlocksModule } from '../content-blocks/content-blocks.module';
 import { PagesController } from './controllers/pages.controller';
 import { PublicPagesController } from './controllers/public-pages.controller';
 import { PagesRepository } from './repositories/pages.repository';
@@ -17,9 +18,12 @@ import { PublicPagesService } from './services/public-pages.service';
  * docs/69_BACKEND_PAGES.md, docs/75_BACKEND_PUBLIC_CONTENT_API.md.
  * `PublicPagesService` is exported for `SeoModule`'s
  * `GET /public/seo/page/:slug` composition (slug -> published page id).
+ * Imports `ContentBlocksModule` (Rich Content Engine, Phase 1 / Step 1) to
+ * inject `BlockTreeValidator` into `PagesService`, validating `body`'s
+ * block-tree shape before every create/update.
  */
 @Module({
-  imports: [AuthorizationModule],
+  imports: [AuthorizationModule, ContentBlocksModule],
   controllers: [PagesController, PublicPagesController],
   providers: [
     PagesRepository,

@@ -14,13 +14,18 @@ vi.mock('../services/articles.api', () => ({ articlesApi: { create: vi.fn() } })
 vi.mock('../services/categories.api', () => ({ categoriesApi: { listFlat: vi.fn() } }));
 vi.mock('../services/tags.api', () => ({ tagsApi: { list: vi.fn() } }));
 vi.mock('@/lib/toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock('@/features/block-editor/hooks/use-reusable-blocks', () => ({
+  useReusableBlocks: () => ({ data: { data: [] }, isLoading: false }),
+}));
 
 afterEach(() => {
   vi.clearAllMocks();
 });
 
 function wrapper() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   return function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
@@ -35,18 +40,20 @@ describe('CreateArticlePageContent', () => {
     render(<CreateArticlePageContent />, { wrapper: wrapper() });
 
     await user.type(screen.getByLabelText('Title'), 'Hello World');
-    await user.type(screen.getByLabelText(/Content/), 'Some body text');
-    await user.type(screen.getByLabelText('Author id (UUID)'), '11111111-1111-1111-1111-111111111111');
+    await user.type(
+      screen.getByLabelText('Author id (UUID)'),
+      '11111111-1111-1111-1111-111111111111'
+    );
     await user.click(screen.getByRole('button', { name: 'Create article' }));
 
     await waitFor(() =>
       expect(articlesApi.create).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Hello World',
-          body: { text: 'Some body text' },
+          body: { blocks: [] },
           authorId: '11111111-1111-1111-1111-111111111111',
-        }),
-      ),
+        })
+      )
     );
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/articles/a1'));
   });

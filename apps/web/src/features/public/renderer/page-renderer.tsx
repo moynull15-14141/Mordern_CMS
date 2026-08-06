@@ -1,11 +1,12 @@
 import type { RenderContext } from '../types/render-context.types';
 import type { PublicPageContent } from '../types/content.types';
+import { BlockRenderer } from '../block-renderer/block-renderer';
+import { parseBlocks } from '../block-renderer/utils/parse-blocks.util';
 
 /**
- * Renders a resolved `Page`. `body` is rendered as an inert placeholder,
- * not parsed/interpreted — turning `Page.body`'s opaque JSON into real
- * HTML is Block/Rich-Content Engine work, explicitly out of scope for this
- * milestone (see the milestone brief's "Do NOT build Block Engine").
+ * Renders a resolved `Page`. `body` renders through the Rich Content
+ * Engine's `BlockRenderer` (Phase 1 / Step 1) — see
+ * `block-renderer/block-renderer.tsx`.
  */
 export function PageRenderer({ context }: { context: RenderContext }) {
   const content = context.content as PublicPageContent;
@@ -17,8 +18,8 @@ export function PageRenderer({ context }: { context: RenderContext }) {
       {content.seo?.description ? (
         <p className="mt-4 text-lg text-gray-600">{content.seo.description}</p>
       ) : null}
-      <div data-testid="page-body-placeholder" aria-hidden className="mt-8 text-gray-700">
-        {/* Placeholder only — see this file's doc comment. */}
+      <div className="mt-8 space-y-4 text-gray-700">
+        <BlockRenderer blocks={parseBlocks(content.body)} />
       </div>
     </article>
   );

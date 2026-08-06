@@ -61,6 +61,21 @@ describe('ArticleRenderer', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
+  it('renders the article body through the Rich Content Engine block renderer', () => {
+    render(
+      <ArticleRenderer
+        context={{
+          ...baseContext,
+          content: {
+            ...article,
+            body: { blocks: [{ id: 'b1', type: 'paragraph', data: { text: 'Body text' } }] },
+          },
+        }}
+      />
+    );
+    expect(screen.getByText('Body text')).toBeInTheDocument();
+  });
+
   it('omits category link and byline separators gracefully when data is minimal', () => {
     render(
       <ArticleRenderer

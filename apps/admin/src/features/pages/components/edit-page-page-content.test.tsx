@@ -10,6 +10,9 @@ const pushMock = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: pushMock }) }));
 vi.mock('../services/pages.api', () => ({ pagesApi: { get: vi.fn(), update: vi.fn() } }));
 vi.mock('@/lib/toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock('@/features/block-editor/hooks/use-reusable-blocks', () => ({
+  useReusableBlocks: () => ({ data: { data: [] }, isLoading: false }),
+}));
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -28,7 +31,7 @@ const targetPage = {
   id: 'p1',
   title: 'About Us',
   slug: 'about-us',
-  body: { text: 'Original content' },
+  body: { blocks: [{ id: 'b1', type: 'paragraph', data: { text: 'Original content' } }] },
   status: 'DRAFT' as const,
   publishedAt: null,
   seo: null,
@@ -43,7 +46,10 @@ describe('EditPagePageContent', () => {
     render(<EditPagePageContent pageId="p1" />, { wrapper: wrapper() });
 
     await waitFor(() => expect(screen.getByLabelText('Title')).toHaveValue('About Us'));
-    expect(screen.getByLabelText(/Content/)).toHaveValue('Original content');
+    // The page's one stored block loaded into the editor as a real row
+    // (not the empty-state message) — confirms `bodyToBlocks` correctly
+    // unwrapped `{ blocks: [...] }` into the Block Editor's value.
+    expect(screen.getByTestId('block-row-b1')).toBeInTheDocument();
     expect(pagesApi.get).toHaveBeenCalledWith('p1');
   });
 

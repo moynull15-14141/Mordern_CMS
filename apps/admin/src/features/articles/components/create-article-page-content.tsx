@@ -11,16 +11,21 @@ import type { CreateArticleInput } from '../types/article';
 
 function toCreateInput(values: CreateArticleFormValues): CreateArticleInput {
   const keywords = values.seo?.keywords
-    ? values.seo.keywords.split(',').map((keyword) => keyword.trim()).filter(Boolean)
+    ? values.seo.keywords
+        .split(',')
+        .map((keyword) => keyword.trim())
+        .filter(Boolean)
     : undefined;
-  const hasSeo = Boolean(values.seo?.title || values.seo?.description || values.seo?.canonicalUrl || keywords?.length);
+  const hasSeo = Boolean(
+    values.seo?.title || values.seo?.description || values.seo?.canonicalUrl || keywords?.length
+  );
 
   return {
     title: values.title,
     subtitle: values.subtitle || undefined,
     slug: values.slug || undefined,
     summary: values.summary || undefined,
-    body: { text: values.bodyText },
+    body: { blocks: values.body },
     authorId: values.authorId,
     primaryCategoryId: values.primaryCategoryId || undefined,
     tagIds: values.tagIds?.length ? values.tagIds : undefined,
@@ -63,7 +68,11 @@ export function CreateArticlePageContent() {
   return (
     <div className="max-w-2xl space-y-6">
       <PageHeader title="New article" />
-      <CreateArticleForm onSubmit={handleSubmit} isSubmitting={createMutation.isPending} submitError={submitError} />
+      <CreateArticleForm
+        onSubmit={handleSubmit}
+        isSubmitting={createMutation.isPending}
+        submitError={submitError}
+      />
     </div>
   );
 }

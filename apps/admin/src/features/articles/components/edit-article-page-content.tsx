@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/feedback/error-state';
 import { ARTICLE_ROUTES } from '@/constants/routes';
 import { isApiError } from '@/lib/api-error';
+import type { BlockNode } from '@/features/block-editor';
 import { useArticle } from '../hooks/use-article';
 import { useUpdateArticle } from '../hooks/use-update-article';
 import { EditArticleForm } from './article-form';
@@ -15,15 +16,22 @@ import type { UpdateArticleFormValues } from '../schemas/update-article.schema';
 import type { Article, GenericUpdateStatus, UpdateArticleInput } from '../types/article';
 
 /** `body` is an arbitrary `Record<string, unknown>` (`@IsObject()`, no
- * nested DTO) — this milestone's own placeholder writer always stores
- * `{ text: string }` (see `create-article.schema.ts`), so that's read back
- * directly; anything else (a future rich-editor document, or hand-seeded
- * data) is shown as its raw JSON rather than silently dropped. */
-function bodyToText(body: unknown): string {
-  if (body && typeof body === 'object' && 'text' in body && typeof (body as { text: unknown }).text === 'string') {
-    return (body as { text: string }).text;
+ * nested DTO) — the Block Editor always stores `{ blocks: BlockNode[] }`
+ * (see `create-article.schema.ts`), so that's read back directly; any
+ * other shape (content written before Milestone 3, or hand-seeded data)
+ * degrades to an empty block list rather than crashing the edit form —
+ * same "malformed optional value is a legitimate state" convention the
+ * public renderer's `parseBlocks` already established. */
+function bodyToBlocks(body: unknown): BlockNode[] {
+  if (
+    body &&
+    typeof body === 'object' &&
+    'blocks' in body &&
+    Array.isArray((body as { blocks: unknown }).blocks)
+  ) {
+    return (body as { blocks: unknown[] }).blocks as BlockNode[];
   }
-  return JSON.stringify(body ?? {});
+  return [];
 }
 
 function toFormDefaults(article: Article): UpdateArticleFormValues {
@@ -32,8 +40,10 @@ function toFormDefaults(article: Article): UpdateArticleFormValues {
     subtitle: article.subtitle ?? '',
     slug: article.slug,
     summary: article.summary ?? '',
-    bodyText: bodyToText(article.body),
-    status: (article.status === 'PUBLISHED' || article.status === 'SCHEDULED' || article.status === 'DELETED'
+    body: bodyToBlocks(article.body),
+    status: (article.status === 'PUBLISHED' ||
+    article.status === 'SCHEDULED' ||
+    article.status === 'DELETED'
       ? 'DRAFT'
       : article.status) as GenericUpdateStatus,
     primaryCategoryId: article.category?.id ?? '',
@@ -53,16 +63,21 @@ function toFormDefaults(article: Article): UpdateArticleFormValues {
 
 function toUpdateInput(values: UpdateArticleFormValues): UpdateArticleInput {
   const keywords = values.seo?.keywords
-    ? values.seo.keywords.split(',').map((keyword) => keyword.trim()).filter(Boolean)
+    ? values.seo.keywords
+        .split(',')
+        .map((keyword) => keyword.trim())
+        .filter(Boolean)
     : undefined;
-  const hasSeo = Boolean(values.seo?.title || values.seo?.description || values.seo?.canonicalUrl || keywords?.length);
+  const hasSeo = Boolean(
+    values.seo?.title || values.seo?.description || values.seo?.canonicalUrl || keywords?.length
+  );
 
   return {
     title: values.title,
     subtitle: values.subtitle || undefined,
     slug: values.slug || undefined,
     summary: values.summary || undefined,
-    body: { text: values.bodyText },
+    body: { blocks: values.body },
     status: values.status,
     primaryCategoryId: values.primaryCategoryId || undefined,
     tagIds: values.tagIds,
@@ -140,7 +155,11 @@ export function EditArticlePageContent({ articleId }: EditArticlePageContentProp
         onDirtyChange={setIsDirty}
       />
 
-      <button type="button" onClick={handleCancel} className="text-sm text-muted-foreground hover:underline">
+      <button
+        type="button"
+        onClick={handleCancel}
+        className="text-sm text-muted-foreground hover:underline"
+      >
         Cancel
       </button>
 

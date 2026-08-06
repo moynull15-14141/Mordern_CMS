@@ -13,6 +13,12 @@ vi.mock('../hooks/use-tag-options', () => ({ useTagOptions: vi.fn() }));
 // internally — mocked here rather than the deleted Milestone 5
 // `use-media-options` hook.
 vi.mock('@/features/media/hooks/use-media-list', () => ({ useMediaList: vi.fn() }));
+// The Content field is now the Block Editor (Milestone 3) — its only
+// data-fetching hook is the reusable-block picker's, mocked here so it
+// never needs a real QueryClientProvider/backend.
+vi.mock('@/features/block-editor/hooks/use-reusable-blocks', () => ({
+  useReusableBlocks: () => ({ data: { data: [] }, isLoading: false }),
+}));
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -20,8 +26,15 @@ afterEach(() => {
 
 function mockSelectors() {
   vi.mocked(useCategoryOptions).mockReturnValue({ data: [], isError: false } as never);
-  vi.mocked(useTagOptions).mockReturnValue({ data: { data: [], meta: {} }, isError: false } as never);
-  vi.mocked(useMediaList).mockReturnValue({ data: { data: [], meta: {} }, isLoading: false, isError: false } as never);
+  vi.mocked(useTagOptions).mockReturnValue({
+    data: { data: [], meta: {} },
+    isError: false,
+  } as never);
+  vi.mocked(useMediaList).mockReturnValue({
+    data: { data: [], meta: {} },
+    isLoading: false,
+    isError: false,
+  } as never);
 }
 
 describe('CreateArticleForm', () => {
@@ -29,7 +42,8 @@ describe('CreateArticleForm', () => {
     mockSelectors();
     render(<CreateArticleForm onSubmit={vi.fn()} isSubmitting={false} />);
     expect(screen.getByLabelText('Title')).toBeInTheDocument();
-    expect(screen.getByLabelText(/Content/)).toBeInTheDocument();
+    expect(screen.getByText('Content')).toBeInTheDocument();
+    expect(screen.getByTestId('block-editor')).toBeInTheDocument();
     expect(screen.getByLabelText('Author id (UUID)')).toBeInTheDocument();
     expect(screen.getByLabelText('Language')).toBeInTheDocument();
     expect(screen.getByLabelText('Locale')).toBeInTheDocument();
@@ -47,8 +61,10 @@ describe('CreateArticleForm', () => {
     const user = userEvent.setup();
     render(<CreateArticleForm onSubmit={onSubmit} isSubmitting={false} />);
 
-    await user.type(screen.getByLabelText('Author id (UUID)'), '11111111-1111-1111-1111-111111111111');
-    await user.type(screen.getByLabelText(/Content/), 'body text');
+    await user.type(
+      screen.getByLabelText('Author id (UUID)'),
+      '11111111-1111-1111-1111-111111111111'
+    );
     await user.click(screen.getByRole('button', { name: 'Create article' }));
 
     await waitFor(() => expect(screen.getByText('Title is required.')).toBeInTheDocument());
@@ -62,11 +78,12 @@ describe('CreateArticleForm', () => {
     render(<CreateArticleForm onSubmit={onSubmit} isSubmitting={false} />);
 
     await user.type(screen.getByLabelText('Title'), 'Hello');
-    await user.type(screen.getByLabelText(/Content/), 'body text');
     await user.type(screen.getByLabelText('Author id (UUID)'), 'not-a-uuid');
     await user.click(screen.getByRole('button', { name: 'Create article' }));
 
-    await waitFor(() => expect(screen.getByText('Must be a valid Author id (UUID).')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('Must be a valid Author id (UUID).')).toBeInTheDocument()
+    );
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -77,18 +94,20 @@ describe('CreateArticleForm', () => {
     render(<CreateArticleForm onSubmit={onSubmit} isSubmitting={false} />);
 
     await user.type(screen.getByLabelText('Title'), 'Hello World');
-    await user.type(screen.getByLabelText(/Content/), 'Some body text');
-    await user.type(screen.getByLabelText('Author id (UUID)'), '11111111-1111-1111-1111-111111111111');
+    await user.type(
+      screen.getByLabelText('Author id (UUID)'),
+      '11111111-1111-1111-1111-111111111111'
+    );
     await user.click(screen.getByRole('button', { name: 'Create article' }));
 
     await waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Hello World',
-          bodyText: 'Some body text',
+          body: [],
           authorId: '11111111-1111-1111-1111-111111111111',
-        }),
-      ),
+        })
+      )
     );
   });
 });
@@ -96,19 +115,23 @@ describe('CreateArticleForm', () => {
 describe('EditArticleForm', () => {
   const defaultValues = {
     title: 'Hello World',
-    bodyText: 'Some body text',
+    body: [],
     status: 'DRAFT' as const,
   };
 
   it('renders a Status field (UpdateArticleDto has one)', () => {
     mockSelectors();
-    render(<EditArticleForm defaultValues={defaultValues} onSubmit={vi.fn()} isSubmitting={false} />);
+    render(
+      <EditArticleForm defaultValues={defaultValues} onSubmit={vi.fn()} isSubmitting={false} />
+    );
     expect(screen.getByLabelText('Status')).toBeInTheDocument();
   });
 
   it('does not render authorId/language/locale fields (not editable via UpdateArticleDto)', () => {
     mockSelectors();
-    render(<EditArticleForm defaultValues={defaultValues} onSubmit={vi.fn()} isSubmitting={false} />);
+    render(
+      <EditArticleForm defaultValues={defaultValues} onSubmit={vi.fn()} isSubmitting={false} />
+    );
     expect(screen.queryByLabelText('Author id (UUID)')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Language')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Locale')).not.toBeInTheDocument();
@@ -116,7 +139,9 @@ describe('EditArticleForm', () => {
 
   it('disables submit until the form becomes dirty', () => {
     mockSelectors();
-    render(<EditArticleForm defaultValues={defaultValues} onSubmit={vi.fn()} isSubmitting={false} />);
+    render(
+      <EditArticleForm defaultValues={defaultValues} onSubmit={vi.fn()} isSubmitting={false} />
+    );
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
   });
 
@@ -124,14 +149,18 @@ describe('EditArticleForm', () => {
     mockSelectors();
     const onSubmit = vi.fn();
     const user = userEvent.setup();
-    render(<EditArticleForm defaultValues={defaultValues} onSubmit={onSubmit} isSubmitting={false} />);
+    render(
+      <EditArticleForm defaultValues={defaultValues} onSubmit={onSubmit} isSubmitting={false} />
+    );
 
     await user.clear(screen.getByLabelText('Title'));
     await user.type(screen.getByLabelText('Title'), 'New Title');
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled());
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ title: 'New Title' })));
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ title: 'New Title' }))
+    );
   });
 
   it('calls onDirtyChange as the form becomes dirty', async () => {
@@ -144,7 +173,7 @@ describe('EditArticleForm', () => {
         onSubmit={vi.fn()}
         isSubmitting={false}
         onDirtyChange={onDirtyChange}
-      />,
+      />
     );
 
     expect(onDirtyChange).toHaveBeenCalledWith(false);

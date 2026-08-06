@@ -12,7 +12,6 @@ import {
 } from '@/components/form/form';
 import { FormSubmitButton } from '@/components/form/form-submit-button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -21,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { BlockEditor } from '@/features/block-editor';
 import { SeoFields } from './seo-fields';
 import { GENERIC_UPDATE_STATUS_OPTIONS } from '../constants/page.constants';
 import { createPageSchema, type CreatePageFormValues } from '../schemas/create-page.schema';
@@ -30,9 +30,9 @@ import { updatePageSchema, type UpdatePageFormValues } from '../schemas/update-p
  * Two related, colocated forms (not one generically-typed component) since
  * `CreatePageDto`/`UpdatePageDto` are genuinely different shapes (`status`
  * only exists on update) — same reasoning `article-form.tsx` established.
- * The Content field is a deliberate placeholder textarea, not a rich
- * editor (no rich editor exists anywhere in this codebase yet) — see
- * `bodyText` in `create-page.schema.ts`.
+ * The Content field is the Rich Content Engine's Block Editor (Milestone
+ * 3, `@/features/block-editor`) — this form only *consumes* it as a
+ * controlled field, same as `article-form.tsx`.
  */
 
 export interface CreatePageFormProps {
@@ -52,7 +52,7 @@ export function CreatePageForm({
     defaultValues: {
       title: '',
       slug: '',
-      bodyText: '',
+      body: [],
       seo: { title: '', description: '', canonicalUrl: '', keywords: '' },
     },
   });
@@ -105,12 +105,12 @@ export function CreatePageForm({
 
         <FormField
           control={form.control}
-          name="bodyText"
+          name="body"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Content (plain text placeholder — rich editor coming later)</FormLabel>
+              <FormLabel>Content</FormLabel>
               <FormControl>
-                <Textarea rows={10} {...field} />
+                <BlockEditor value={field.value} onChange={field.onChange} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -194,12 +194,12 @@ export function EditPageForm({
 
         <FormField
           control={form.control}
-          name="bodyText"
+          name="body"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Content (plain text placeholder — rich editor coming later)</FormLabel>
+              <FormLabel>Content</FormLabel>
               <FormControl>
-                <Textarea rows={10} {...field} />
+                <BlockEditor value={field.value} onChange={field.onChange} />
               </FormControl>
               <FormMessage />
             </FormItem>

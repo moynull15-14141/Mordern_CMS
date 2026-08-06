@@ -28,6 +28,7 @@ import { MenusModule } from './modules/menus/menus.module';
 import { ThemesModule } from './modules/themes/themes.module';
 import { SiteModule } from './modules/site/site.module';
 import { LayoutsModule } from './modules/layouts/layouts.module';
+import { ContentBlocksModule } from './modules/content-blocks/content-blocks.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { LayoutsModule } from './modules/layouts/layouts.module';
     AuthorizationModule,
     SettingsModule,
     UsersModule,
+    ContentBlocksModule,
     ArticlesModule,
     CategoriesModule,
     MediaModule,

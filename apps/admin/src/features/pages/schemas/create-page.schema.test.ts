@@ -3,11 +3,11 @@ import { createPageSchema } from './create-page.schema';
 
 const validBase = {
   title: 'About Us',
-  bodyText: 'Some content',
+  body: [],
 };
 
 describe('createPageSchema', () => {
-  it('accepts the minimal valid shape', () => {
+  it('accepts the minimal valid shape (an empty block list)', () => {
     expect(createPageSchema.safeParse(validBase).success).toBe(true);
   });
 
@@ -15,8 +15,12 @@ describe('createPageSchema', () => {
     expect(createPageSchema.safeParse({ ...validBase, title: '' }).success).toBe(false);
   });
 
-  it('rejects empty content', () => {
-    expect(createPageSchema.safeParse({ ...validBase, bodyText: '' }).success).toBe(false);
+  it('accepts a populated block list', () => {
+    const populated = {
+      ...validBase,
+      body: [{ id: 'b1', type: 'paragraph', data: { text: 'hi' } }],
+    };
+    expect(createPageSchema.safeParse(populated).success).toBe(true);
   });
 
   it('rejects a title over 300 characters', () => {

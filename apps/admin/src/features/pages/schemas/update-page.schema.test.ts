@@ -3,7 +3,7 @@ import { updatePageSchema } from './update-page.schema';
 
 const validBase = {
   title: 'About Us',
-  bodyText: 'Some content',
+  body: [],
   status: 'DRAFT' as const,
 };
 
