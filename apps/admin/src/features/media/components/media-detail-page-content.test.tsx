@@ -23,7 +23,9 @@ vi.mock('../services/media-folders.api', () => ({ mediaFoldersApi: { getTree: vi
 vi.mock('@/lib/toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 function wrapper(permissions: string[] = ['media.upload', 'media.delete']) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   const permissionValue: PermissionContextValue = {
     permissions,
     roles: [],
@@ -57,6 +59,11 @@ const media = {
   caption: null,
   credit: null,
   uploadedBy: 'u1',
+  visibility: 'PUBLIC' as const,
+  urls: {},
+  blurPlaceholder: null,
+  dominantColor: null,
+  pinnedAt: null,
   usageCount: 0,
   usages: [],
   createdAt: '2026-01-01T00:00:00.000Z',
@@ -90,7 +97,9 @@ describe('MediaDetailPageContent', () => {
     vi.mocked(mediaApi.getDuplicates).mockResolvedValue([]);
     render(<MediaDetailPageContent mediaId="m1" />, { wrapper: wrapper() });
 
-    await waitFor(() => expect(screen.getByText(/No preview or download is available/)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/No preview or download is available/)).toBeInTheDocument()
+    );
     expect(screen.queryByRole('link', { name: /download/i })).not.toBeInTheDocument();
   });
 
@@ -108,7 +117,9 @@ describe('MediaDetailPageContent', () => {
     await user.type(screen.getByLabelText('Filename'), 'new.jpg');
     await user.click(screen.getByRole('button', { name: 'Rename' }));
 
-    await waitFor(() => expect(mediaApi.rename).toHaveBeenCalledWith('m1', { filename: 'new.jpg' }));
+    await waitFor(() =>
+      expect(mediaApi.rename).toHaveBeenCalledWith('m1', { filename: 'new.jpg' })
+    );
   });
 
   it('confirms and calls mediaApi.remove on Delete', async () => {
@@ -132,7 +143,9 @@ describe('MediaDetailPageContent', () => {
     vi.mocked(mediaApi.getDuplicates).mockResolvedValue([]);
     render(<MediaDetailPageContent mediaId="m1" />, { wrapper: wrapper() });
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Restore' })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Restore' })).toBeInTheDocument()
+    );
     expect(screen.queryByRole('button', { name: 'Edit metadata' })).not.toBeInTheDocument();
   });
 

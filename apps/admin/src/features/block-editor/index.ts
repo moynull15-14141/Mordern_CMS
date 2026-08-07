@@ -7,6 +7,29 @@
 export { BlockEditor } from './components/block-editor';
 export type { BlockEditorProps } from './components/block-editor';
 
+// Individual pieces (Provider, canvas, inspector, hooks) — for a consumer
+// that needs its own custom layout around them instead of `<BlockEditor>`'s
+// fixed toolbar/canvas/inspector grid. The Page Builder (Milestone 7) is
+// the first such consumer: same store, same components, different shell.
+export { BlockEditorProvider } from './context/block-editor-provider';
+export { BlockCanvas } from './components/canvas/block-canvas';
+export { PropertyPanel } from './components/property-panel/property-panel';
+export { AddBlockButton } from './components/block-picker/add-block-button';
+export { BlockTypePicker } from './components/block-picker/block-type-picker';
+export { PatternPickerDialog } from './components/block-picker/pattern-picker-dialog';
+export { ReusableBlockPickerDialog } from './components/block-picker/reusable-block-picker-dialog';
+export {
+  useEditorBlocks,
+  useEditorActions,
+  useSelectedId,
+  useHoveredId,
+  useCanUndo,
+  useCanRedo,
+  useHasClipboardEntry,
+} from './context/use-block-editor';
+export { findBlock, findParentId, getSiblings } from './state/block-tree.util';
+export { useEditorKeyboardShortcuts } from './hooks/use-editor-keyboard-shortcuts';
+
 export {
   registerBlockDefinition,
   getBlockDefinition,

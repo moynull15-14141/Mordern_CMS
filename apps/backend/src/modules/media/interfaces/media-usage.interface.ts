@@ -3,7 +3,14 @@
  * docs/48_MEDIA_LIBRARY_ARCHITECTURE.md "Usage Detection" for what is (and
  * is deliberately not) covered. */
 export interface MediaUsageReference {
-  source: 'User.profileImage' | 'Author.profileImage' | 'Article.featuredMedia' | 'ArticleMedia';
+  source:
+    | 'User.profileImage'
+    | 'Author.profileImage'
+    | 'Article.featuredMedia'
+    | 'ArticleMedia'
+    | 'Article.body'
+    | 'Page.body'
+    | 'ReusableBlock.body';
   id: string;
   label: string;
 }

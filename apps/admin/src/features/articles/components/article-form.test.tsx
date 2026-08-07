@@ -5,14 +5,27 @@ import { CreateArticleForm, EditArticleForm } from './article-form';
 import { useCategoryOptions } from '../hooks/use-category-options';
 import { useTagOptions } from '../hooks/use-tag-options';
 import { useMediaList } from '@/features/media/hooks/use-media-list';
+import {
+  useFavoriteMediaList,
+  useRecentMediaList,
+} from '@/features/media/hooks/use-media-engagement';
+import { useUploadMedia } from '@/features/media/hooks/use-upload-media';
 
 vi.mock('../hooks/use-category-options', () => ({ useCategoryOptions: vi.fn() }));
 vi.mock('../hooks/use-tag-options', () => ({ useTagOptions: vi.fn() }));
 // `FeaturedImageField` now reuses the shared `MediaPickerDialog`
 // (`@/features/media`, Frontend Milestone 7), which calls `useMediaList`
 // internally — mocked here rather than the deleted Milestone 5
-// `use-media-options` hook.
+// `use-media-options` hook. Milestone 5 (Enterprise Digital Asset
+// Platform) added Recent/Favorites tabs + inline upload to that same
+// dialog, each with their own data-fetching hook — mocked for the same
+// reason.
 vi.mock('@/features/media/hooks/use-media-list', () => ({ useMediaList: vi.fn() }));
+vi.mock('@/features/media/hooks/use-media-engagement', () => ({
+  useRecentMediaList: vi.fn(),
+  useFavoriteMediaList: vi.fn(),
+}));
+vi.mock('@/features/media/hooks/use-upload-media', () => ({ useUploadMedia: vi.fn() }));
 // The Content field is now the Block Editor (Milestone 3) — its only
 // data-fetching hook is the reusable-block picker's, mocked here so it
 // never needs a real QueryClientProvider/backend.
@@ -35,6 +48,17 @@ function mockSelectors() {
     isLoading: false,
     isError: false,
   } as never);
+  vi.mocked(useRecentMediaList).mockReturnValue({
+    data: [],
+    isLoading: false,
+    isError: false,
+  } as never);
+  vi.mocked(useFavoriteMediaList).mockReturnValue({
+    data: [],
+    isLoading: false,
+    isError: false,
+  } as never);
+  vi.mocked(useUploadMedia).mockReturnValue({ uploadFile: vi.fn() } as never);
 }
 
 describe('CreateArticleForm', () => {

@@ -94,11 +94,10 @@ export const API_ENDPOINTS = {
     byId: (id: string) => `/tags/${id}`,
     restore: (id: string) => `/tags/${id}/restore`,
   },
-  /** Frontend Milestone 7 — sub-paths verified directly against
-   * `apps/backend/src/modules/media/controllers/media.controller.ts`. No
-   * upload/download/streaming endpoint exists anywhere — `POST /media`
-   * registers metadata only (its own doc-comment: "NO upload engine"); see
-   * docs/67_FRONTEND_MEDIA.md. */
+  /** Frontend Milestone 7 (`POST /media` metadata registration) + Milestone
+   * 5 (Enterprise Digital Asset Platform — real presigned-upload/bulk/
+   * favorites endpoints), verified directly against
+   * `apps/backend/src/modules/media/controllers/*.controller.ts`. */
   MEDIA: {
     ROOT: '/media',
     byId: (id: string) => `/media/${id}`,
@@ -108,6 +107,24 @@ export const API_ENDPOINTS = {
     move: (id: string) => `/media/${id}/move`,
     copyMetadata: (id: string) => `/media/${id}/copy-metadata`,
     restore: (id: string) => `/media/${id}/restore`,
+    signedUrl: (id: string) => `/media/${id}/signed-url`,
+    uploadRequests: '/media/upload-requests',
+    uploadRequestsMultipart: '/media/upload-requests/multipart',
+    multipartComplete: (id: string) => `/media/upload-requests/${id}/multipart/complete`,
+    multipartAbort: (id: string) => `/media/upload-requests/${id}/multipart/abort`,
+    confirmUpload: (id: string) => `/media/${id}/confirm-upload`,
+    bulkMove: '/media/bulk/move',
+    bulkArchive: '/media/bulk/archive',
+    bulkUnarchive: '/media/bulk/unarchive',
+    bulkRestore: '/media/bulk/restore',
+    bulkDelete: '/media/bulk/delete',
+    permanentDelete: (id: string) => `/media/bulk/${id}/permanent`,
+    favorites: '/media/favorites',
+    favorite: (id: string) => `/media/${id}/favorite`,
+    recent: '/media/recent',
+    recordView: (id: string) => `/media/${id}/view`,
+    pinned: '/media/pinned',
+    pin: (id: string) => `/media/${id}/pin`,
   },
   /** Frontend Milestone 7 — only the sub-path the folder filter/picker
    * needs (`tree`); full Folder CRUD is out of this milestone's requested
@@ -140,6 +157,7 @@ export const API_ENDPOINTS = {
     byId: (id: string) => `/pages/${id}`,
     restore: (id: string) => `/pages/${id}/restore`,
     publish: (id: string) => `/pages/${id}/publish`,
+    previewToken: (id: string) => `/pages/${id}/preview-token`,
   },
   /** Frontend Milestone 12 — sub-paths verified directly against
    * `apps/backend/src/modules/themes/controllers/themes.controller.ts`. No
@@ -176,6 +194,19 @@ export const API_ENDPOINTS = {
     reusableById: (id: string) => `/content-blocks/reusable/${id}`,
     reusableRestore: (id: string) => `/content-blocks/reusable/${id}/restore`,
     reusableUsages: (id: string) => `/content-blocks/reusable/${id}/usages`,
+  },
+  /** Section & Pattern Library — verified directly against
+   * `apps/backend/src/modules/patterns/controllers/*.controller.ts`. */
+  PATTERNS: {
+    ROOT: '/patterns',
+    byId: (id: string) => `/patterns/${id}`,
+    duplicate: (id: string) => `/patterns/${id}/duplicate`,
+    archive: (id: string) => `/patterns/${id}/archive`,
+    unarchive: (id: string) => `/patterns/${id}/unarchive`,
+    restore: (id: string) => `/patterns/${id}/restore`,
+    usages: (id: string) => `/patterns/${id}/usages`,
+    favorites: '/patterns/favorites',
+    favorite: (id: string) => `/patterns/${id}/favorite`,
   },
   HEALTH: '/health',
 } as const;

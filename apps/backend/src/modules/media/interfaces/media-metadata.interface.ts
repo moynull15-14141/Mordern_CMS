@@ -9,5 +9,7 @@
 export interface MediaAssetMetadata {
   folderId?: string | null;
   filename?: string;
+  /** Set by `MediaProcessorService` when async processing fails (Milestone 5) — human-readable reason, paired with `status: FAILED`. */
+  processingError?: string;
   [key: string]: unknown;
 }

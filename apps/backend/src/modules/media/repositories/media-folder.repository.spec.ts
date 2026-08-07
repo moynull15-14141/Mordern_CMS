@@ -91,12 +91,12 @@ describe('MediaFolderRepository', () => {
     });
   });
 
-  it('countActiveAssets counts assets whose metadata.folderId matches', async () => {
+  it('countActiveAssets counts assets whose real folderId FK column matches', async () => {
     const prisma = buildPrismaMock();
     const repository = new MediaFolderRepository(prisma);
     await repository.countActiveAssets('folder-1');
     expect(prisma.mediaAsset.count).toHaveBeenCalledWith({
-      where: { deletedAt: null, metadata: { path: ['folderId'], equals: 'folder-1' } },
+      where: { deletedAt: null, folderId: 'folder-1' },
     });
   });
 

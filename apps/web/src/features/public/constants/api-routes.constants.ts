@@ -11,6 +11,8 @@ export const PUBLIC_API_ROUTES = {
   MENU_BY_LOCATION: (location: string) => `/public/menus/${location}`,
   MENU_BY_SLUG: (slug: string) => `/public/menus/slug/${slug}`,
   PAGE_BY_SLUG: (slug: string) => `/public/pages/slug/${slug}`,
+  PAGE_PREVIEW_BY_TOKEN: (token: string) =>
+    `/public/pages/preview?token=${encodeURIComponent(token)}`,
   ARTICLES: '/public/articles',
   ARTICLE_BY_SLUG: (slug: string) => `/public/articles/slug/${slug}`,
   CATEGORIES: '/public/categories',
@@ -24,4 +26,6 @@ export const PUBLIC_API_ROUTES = {
     return `/public/layouts/resolve?${params.toString()}`;
   },
   REUSABLE_BLOCK_BY_ID: (id: string) => `/public/content-blocks/reusable/${id}`,
+  MEDIA_BY_ID: (id: string) => `/public/media/${id}`,
+  PATTERN_BY_ID: (id: string) => `/public/patterns/${id}`,
 } as const;

@@ -38,6 +38,7 @@ export function useHasClipboardEntry() {
 type EditorActions = Pick<
   EditorStoreState,
   | 'insertBlock'
+  | 'insertClonedNodes'
   | 'updateBlockData'
   | 'updateBlockMeta'
   | 'replaceBlockById'
@@ -62,6 +63,7 @@ export function useEditorActions(): EditorActions {
     store,
     useShallow((state) => ({
       insertBlock: state.insertBlock,
+      insertClonedNodes: state.insertClonedNodes,
       updateBlockData: state.updateBlockData,
       updateBlockMeta: state.updateBlockMeta,
       replaceBlockById: state.replaceBlockById,

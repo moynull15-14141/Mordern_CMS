@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import { HEX_COLOR_PATTERN } from '../constants/theme.constants';
+import { designTokensSchema } from './design-tokens.schema';
+
+export { HEX_COLOR_PATTERN };
 
 /** Mirrors `ThemeSettingsDto` field-for-field
  * (`apps/backend/src/modules/themes/dto/theme-settings.dto.ts`) — every
@@ -6,9 +10,10 @@ import { z } from 'zod';
  * `HEX_COLOR_PATTERN` enforces. `typography` is edited as raw JSON text
  * (same "form-field string, domain-shape at the boundary" pattern the SEO
  * module's `schemaJsonText` uses) since the backend keeps it as an
- * open-ended `Record<string, unknown>` with no fixed sub-field set. */
-export const HEX_COLOR_PATTERN = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
-
+ * open-ended `Record<string, unknown>` with no fixed sub-field set.
+ * `designTokens` (Milestone 8) is the one exception to "raw JSON text" —
+ * it has a real, typed schema (`design-tokens.schema.ts`) and is edited
+ * through the Site Design tabbed UI, never JSON. */
 export const themeSettingsSchema = z.object({
   logo: z.string().max(2000, 'Must be 2000 characters or fewer.').optional().or(z.literal('')),
   favicon: z.string().max(2000, 'Must be 2000 characters or fewer.').optional().or(z.literal('')),
@@ -58,6 +63,7 @@ export const themeSettingsSchema = z.object({
     .max(50000, 'Must be 50000 characters or fewer.')
     .optional()
     .or(z.literal('')),
+  designTokens: designTokensSchema.optional(),
 });
 
 export type ThemeSettingsFormValues = z.infer<typeof themeSettingsSchema>;

@@ -5,6 +5,7 @@ import {
   findParentId,
   getSiblings,
   insertBlock,
+  insertBlocks,
   moveBlock,
   removeBlock,
   updateBlock,
@@ -90,6 +91,34 @@ describe('insertBlock', () => {
   it('clamps an out-of-range index to append at the end', () => {
     const updated = insertBlock(tree(), { id: 'new', type: 'paragraph', data: {} }, null, 999);
     expect(updated.at(-1)?.id).toBe('new');
+  });
+});
+
+describe('insertBlocks', () => {
+  it('inserts several sibling nodes together at the top level, in order', () => {
+    const updated = insertBlocks(
+      tree(),
+      [
+        { id: 'x', type: 'paragraph', data: {} },
+        { id: 'y', type: 'paragraph', data: {} },
+      ],
+      null,
+      1
+    );
+    expect(updated.map((b) => b.id)).toEqual(['a', 'x', 'y', 'b']);
+  });
+
+  it('inserts several sibling nodes together into a container parent', () => {
+    const updated = insertBlocks(
+      tree(),
+      [
+        { id: 'x', type: 'paragraph', data: {} },
+        { id: 'y', type: 'paragraph', data: {} },
+      ],
+      'b',
+      1
+    );
+    expect(getSiblings(updated, 'b').map((b) => b.id)).toEqual(['c', 'x', 'y', 'd']);
   });
 });
 

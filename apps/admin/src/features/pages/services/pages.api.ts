@@ -37,4 +37,8 @@ export const pagesApi = {
   publish(id: string): Promise<Page> {
     return api.post<Page>(API_ENDPOINTS.PAGES.publish(id));
   },
+
+  createPreviewToken(id: string): Promise<{ token: string }> {
+    return api.post<{ token: string }>(API_ENDPOINTS.PAGES.previewToken(id));
+  },
 };

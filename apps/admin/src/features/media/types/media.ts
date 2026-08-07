@@ -5,14 +5,32 @@ export type MediaStatus = 'PROCESSING' | 'READY' | 'FAILED' | 'ARCHIVED';
 export type MediaSortField = 'filename' | 'mimeType' | 'filesize' | 'createdAt' | 'updatedAt';
 
 export interface MediaUsageReference {
-  source: 'User.profileImage' | 'Author.profileImage' | 'Article.featuredMedia' | 'ArticleMedia';
+  source:
+    | 'User.profileImage'
+    | 'Author.profileImage'
+    | 'Article.featuredMedia'
+    | 'ArticleMedia'
+    | 'Article.body'
+    | 'Page.body'
+    | 'ReusableBlock.body';
   id: string;
   label: string;
 }
 
-/** Mirrors `MediaResponseDto` exactly. No `url` field exists — there is no
- * upload/storage/streaming engine in this milestone's backend (see
- * `create-media-asset.dto.ts`'s own comment: "NO upload engine"). */
+export type MediaVisibility = 'PUBLIC' | 'PRIVATE';
+
+/** Mirrors `MediaResponseDto` exactly (real upload/CDN pipeline —
+ * Milestone 5, Enterprise Digital Asset Platform). */
+export interface MediaUrls {
+  original?: string;
+  thumbnail?: string;
+  small?: string;
+  medium?: string;
+  large?: string;
+  webp?: string;
+  avif?: string;
+}
+
 export interface Media {
   id: string;
   type: MediaType;
@@ -30,6 +48,11 @@ export interface Media {
   caption: string | null;
   credit: string | null;
   uploadedBy: string;
+  visibility: MediaVisibility;
+  urls: MediaUrls;
+  blurPlaceholder: string | null;
+  dominantColor: string | null;
+  pinnedAt: string | null;
   usageCount: number;
   usages: MediaUsageReference[];
   createdAt: string;
@@ -52,6 +75,27 @@ export interface MediaFilters {
   createdTo?: string;
   sortBy?: MediaSortField;
   sortOrder?: 'asc' | 'desc';
+}
+
+/** `CreateUploadRequestDto` 1:1 (Milestone 5) — requests a presigned
+ * direct-to-R2 PUT URL; the browser uploads bytes straight to R2. */
+export interface CreateUploadRequestInput {
+  type: MediaType;
+  filename: string;
+  mimeType: string;
+  filesize: string;
+  width?: number;
+  height?: number;
+  duration?: number;
+  folderId?: string;
+}
+
+/** `UploadRequestResponseDto` 1:1. */
+export interface UploadRequestResult {
+  mediaAssetId: string;
+  uploadUrl: string;
+  expiresAt: string;
+  storageKey: string;
 }
 
 /** `CreateMediaAssetDto` 1:1 — registers metadata for a file assumed to

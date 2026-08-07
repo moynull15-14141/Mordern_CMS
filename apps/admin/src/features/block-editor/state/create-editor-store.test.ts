@@ -104,13 +104,11 @@ describe('createEditorStore', () => {
 
   it('replaceBlockById swaps a top-level block for a whole new node', () => {
     const store = createEditorStore([{ id: 'a', type: 'paragraph', data: { text: 'hi' } }]);
-    store
-      .getState()
-      .replaceBlockById('a', {
-        id: 'rb-ref',
-        type: 'reusable-block',
-        data: { reusableBlockId: 'rb-1' },
-      });
+    store.getState().replaceBlockById('a', {
+      id: 'rb-ref',
+      type: 'reusable-block',
+      data: { reusableBlockId: 'rb-1' },
+    });
 
     const present = store.getState().history.present;
     expect(present).toHaveLength(1);
@@ -170,6 +168,49 @@ describe('createEditorStore', () => {
       type: 'paragraph',
       data: { text: 'hi' },
     });
+  });
+
+  it('insertClonedNodes clones each node with fresh ids (root and nested) and selects the last root', () => {
+    const store = createEditorStore([]);
+    const nodes: BlockNode[] = [
+      { id: 'source-a', type: 'paragraph', data: { text: 'one' } },
+      {
+        id: 'source-b',
+        type: 'container',
+        data: {},
+        children: [{ id: 'source-b-child', type: 'paragraph', data: { text: 'nested' } }],
+      },
+    ];
+    const insertedIds = store.getState().insertClonedNodes(nodes, null, 0);
+
+    const present = store.getState().history.present;
+    expect(present).toHaveLength(2);
+    expect(insertedIds).toEqual([present[0].id, present[1].id]);
+    expect(present[0].id).not.toBe('source-a');
+    expect(present[1].id).not.toBe('source-b');
+    expect(present[1].children?.[0].id).not.toBe('source-b-child');
+    expect(present[1].children?.[0].data).toEqual({ text: 'nested' });
+    expect(store.getState().selectedId).toBe(present[1].id);
+
+    // Original nodes passed in are never mutated — the source pattern's
+    // own ids stay intact for any other use of the same reference.
+    expect(nodes[0].id).toBe('source-a');
+  });
+
+  it('insertClonedNodes is undoable as a single history entry', () => {
+    const store = createEditorStore([{ id: 'existing', type: 'paragraph', data: {} }]);
+    store.getState().insertClonedNodes(
+      [
+        { id: 'x', type: 'paragraph', data: {} },
+        { id: 'y', type: 'paragraph', data: {} },
+      ],
+      null,
+      1
+    );
+    expect(store.getState().history.present).toHaveLength(3);
+    store.getState().undo();
+    expect(store.getState().history.present).toHaveLength(1);
+    expect(store.getState().history.present[0].id).toBe('existing');
   });
 
   it('moveBlockTo reorders the tree and is undoable', () => {

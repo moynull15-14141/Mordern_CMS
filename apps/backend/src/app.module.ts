@@ -12,6 +12,7 @@ import { AppConfigService } from './config/config.service';
 import { FeatureFlagsModule } from './core/feature-flags/feature-flags.module';
 import { LoggerModule } from './core/logger/logger.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
+import { QueueModule } from './infrastructure/queue/queue.module';
 import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { JwtAuthGuard } from './modules/identity/guards/jwt-auth.guard';
 import { IdentityModule } from './modules/identity/identity.module';
@@ -29,6 +30,7 @@ import { ThemesModule } from './modules/themes/themes.module';
 import { SiteModule } from './modules/site/site.module';
 import { LayoutsModule } from './modules/layouts/layouts.module';
 import { ContentBlocksModule } from './modules/content-blocks/content-blocks.module';
+import { PatternsModule } from './modules/patterns/patterns.module';
 
 @Module({
   imports: [
@@ -36,6 +38,7 @@ import { ContentBlocksModule } from './modules/content-blocks/content-blocks.mod
     LoggerModule,
     FeatureFlagsModule,
     DatabaseModule,
+    QueueModule,
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [AppConfigService],
@@ -48,6 +51,7 @@ import { ContentBlocksModule } from './modules/content-blocks/content-blocks.mod
     SettingsModule,
     UsersModule,
     ContentBlocksModule,
+    PatternsModule,
     ArticlesModule,
     CategoriesModule,
     MediaModule,

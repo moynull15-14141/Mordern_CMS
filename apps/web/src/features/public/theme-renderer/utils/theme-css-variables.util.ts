@@ -1,4 +1,5 @@
 import type { PublicTheme } from '../../types/theme.types';
+import { buildDesignTokenCssVariables } from './design-tokens-css-variables.util';
 
 function stringField(source: Record<string, unknown> | null, key: string): string | undefined {
   const value = source?.[key];
@@ -55,5 +56,5 @@ export function buildExtendedThemeCssVariables(theme: PublicTheme | null): Recor
       variables[name] = value;
     }
   }
-  return variables;
+  return { ...variables, ...buildDesignTokenCssVariables(theme) };
 }

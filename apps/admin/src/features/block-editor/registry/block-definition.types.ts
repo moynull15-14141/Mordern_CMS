@@ -12,18 +12,27 @@ export type BlockFieldKind =
   | 'select'
   | 'color'
   | 'list'
-  | 'reusable-block-ref';
+  | 'reusable-block-ref'
+  | 'media-ref';
 
 export interface BlockFieldOption {
   value: string;
   label: string;
 }
 
+/** Mirrors the backend `MediaType` enum
+ * (`apps/backend/src/modules/media/... MediaType`) — kept as a plain
+ * string union here rather than importing across apps, same "no shared
+ * package wired between apps" convention this feature already follows. */
+export type MediaTypeFilter = 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'AUDIO';
+
 /** `itemFields` is only meaningful when `kind === 'list'` — each list item
  * is itself an object shaped by `itemFields`, which may recursively
  * contain another `kind: 'list'` field (used by `table`'s
  * `rows[].cells[]`). Mirrors the backend's identical recursive design
- * (`apps/backend/src/modules/content-blocks/block-schema/block-types.ts`). */
+ * (`apps/backend/src/modules/content-blocks/block-schema/block-types.ts`).
+ * `mediaTypeFilter` is only meaningful when `kind === 'media-ref'` —
+ * restricts the picker to one Media Library type (Milestone 5). */
 export interface BlockFieldDescriptor {
   key: string;
   label: string;
@@ -33,6 +42,7 @@ export interface BlockFieldDescriptor {
   itemFields?: BlockFieldDescriptor[];
   defaultValue?: unknown;
   placeholder?: string;
+  mediaTypeFilter?: MediaTypeFilter;
 }
 
 export type BlockFamily = 'leaf' | 'media' | 'rich' | 'action' | 'container' | 'reference';

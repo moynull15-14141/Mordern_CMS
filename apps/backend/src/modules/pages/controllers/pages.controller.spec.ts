@@ -1,6 +1,7 @@
 import { PageSortField } from '../constants/page.constants';
 import { SortOrder } from '../../../common/dto/pagination.dto';
 import { PagesService } from '../services/pages.service';
+import { PagePreviewService } from '../services/page-preview.service';
 import { PagesController } from './pages.controller';
 
 function buildController() {
@@ -14,8 +15,11 @@ function buildController() {
     restorePage: jest.fn().mockResolvedValue({}),
     publishPage: jest.fn().mockResolvedValue({}),
   } as unknown as PagesService;
-  const controller = new PagesController(pagesService);
-  return { controller, pagesService };
+  const pagePreviewService = {
+    createPreviewToken: jest.fn().mockReturnValue('signed-token'),
+  } as unknown as PagePreviewService;
+  const controller = new PagesController(pagesService, pagePreviewService);
+  return { controller, pagesService, pagePreviewService };
 }
 
 const user = { id: 'user-1' } as never;
@@ -96,5 +100,21 @@ describe('PagesController', () => {
     const { controller, pagesService } = buildController();
     await controller.publishPage('page-1', user);
     expect(pagesService.publishPage).toHaveBeenCalledWith('page-1', { id: 'user-1' });
+  });
+
+  it('createPreviewToken verifies the page exists, then mints a token', async () => {
+    const { controller, pagesService, pagePreviewService } = buildController();
+    const result = await controller.createPreviewToken('page-1');
+    expect(pagesService.getPage).toHaveBeenCalledWith('page-1');
+    expect(pagePreviewService.createPreviewToken).toHaveBeenCalledWith('page-1');
+    expect(result).toEqual({ token: 'signed-token' });
+  });
+
+  it('createPreviewToken propagates PageNotFoundException for a missing page, without minting a token', async () => {
+    const { controller, pagesService, pagePreviewService } = buildController();
+    (pagesService.getPage as jest.Mock).mockRejectedValue(new Error('not found'));
+
+    await expect(controller.createPreviewToken('missing')).rejects.toThrow('not found');
+    expect(pagePreviewService.createPreviewToken).not.toHaveBeenCalled();
   });
 });

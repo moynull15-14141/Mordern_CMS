@@ -17,6 +17,7 @@ import { ThemeFilters, type ThemeFiltersValue } from './theme-filters';
 import { DeleteDialog } from './delete-dialog';
 import { RestoreDialog } from './restore-dialog';
 import { ActivateDialog } from './activate-dialog';
+import { ImportThemeDialog } from './import-theme-dialog';
 import { THEMES_DEFAULT_PAGE_SIZE } from '../constants/theme.constants';
 import type { Theme, ThemeSortField } from '../types/theme';
 
@@ -65,6 +66,7 @@ export function ThemesPageContent() {
   const [themeToDelete, setThemeToDelete] = useState<Theme | null>(null);
   const [themeToRestore, setThemeToRestore] = useState<Theme | null>(null);
   const [themeToActivate, setThemeToActivate] = useState<Theme | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const sorting: SortingState = useMemo(
     () => (sortBy ? [{ id: sortBy, desc: sortOrder === 'desc' }] : []),
@@ -77,7 +79,12 @@ export function ThemesPageContent() {
         title="Themes"
         actions={
           <PermissionGate permissions={PERMISSIONS.THEME_MANAGE}>
-            <Button onClick={() => router.push(THEME_ROUTES.new())}>New theme</Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setImportOpen(true)}>
+                Import
+              </Button>
+              <Button onClick={() => router.push(THEME_ROUTES.new())}>New theme</Button>
+            </div>
           </PermissionGate>
         }
       />
@@ -136,6 +143,11 @@ export function ThemesPageContent() {
         onConfirm={() => {
           if (themeToActivate) activateMutation.mutate(themeToActivate.id);
         }}
+      />
+      <ImportThemeDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={(created) => router.push(THEME_ROUTES.detail(created.id))}
       />
     </div>
   );

@@ -62,6 +62,7 @@ export class ThemesMapper {
       },
       customCss: settings.customCss ?? null,
       customJs: settings.customJs ?? null,
+      designTokens: settings.designTokens ?? null,
     };
   }
 }

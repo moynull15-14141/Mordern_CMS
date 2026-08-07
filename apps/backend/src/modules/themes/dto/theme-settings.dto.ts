@@ -1,6 +1,15 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsObject, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsObject,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { HEX_COLOR_PATTERN } from '../constants/theme.constants';
+import { DesignTokensDto } from './design-tokens.dto';
 
 /**
  * Theme-scoped appearance settings — stored as `Theme.settings` (JSON),
@@ -110,4 +119,16 @@ export class ThemeSettingsDto {
   @IsString()
   @MaxLength(50000)
   customJs?: string;
+
+  /** Milestone 8 — the Site Design Token model, see `design-tokens.dto.ts`.
+   * Wholly additive: a theme created before M8 simply has no
+   * `designTokens`, and every consumer (mapper, public CSS variable
+   * generation, admin UI) treats `undefined`/`null` as "use the legacy
+   * flat fields / static defaults above," never a crash. */
+  @ApiPropertyOptional({ type: DesignTokensDto })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => DesignTokensDto)
+  designTokens?: DesignTokensDto;
 }

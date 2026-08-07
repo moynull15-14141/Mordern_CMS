@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AppearanceSettingsFields } from './appearance-settings-fields';
+import { SiteDesignFields } from './site-design-fields';
 import { ThemePreview } from './theme-preview';
 import { STATUS_OPTIONS } from '../constants/theme.constants';
 import { createThemeSchema, type CreateThemeFormValues } from '../schemas/create-theme.schema';
@@ -174,7 +174,7 @@ export function CreateThemeForm({
             )}
           />
 
-          <AppearanceSettingsFields control={form.control} />
+          <SiteDesignFields control={form.control} />
 
           <FormSubmitButton isLoading={isSubmitting} disabled={isSubmitting}>
             Create theme
@@ -338,7 +338,7 @@ export function EditThemeForm({
             )}
           />
 
-          <AppearanceSettingsFields control={form.control} />
+          <SiteDesignFields control={form.control} />
 
           <FormSubmitButton
             isLoading={isSubmitting}

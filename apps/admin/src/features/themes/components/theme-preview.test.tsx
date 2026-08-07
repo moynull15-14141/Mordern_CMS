@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ThemePreview } from './theme-preview';
 
 describe('ThemePreview', () => {
@@ -37,5 +38,41 @@ describe('ThemePreview', () => {
     render(<ThemePreview settings={{}} />);
     expect(screen.getByText('Card A')).toBeInTheDocument();
     expect(screen.getByText('Card B')).toBeInTheDocument();
+  });
+
+  it('prefers designTokens.colors.brand.primary over the legacy primaryColor field', () => {
+    render(
+      <ThemePreview
+        settings={{
+          primaryColor: '#111111',
+          designTokens: { colors: { brand: { primary: '#222222' } } },
+        }}
+      />
+    );
+    const button = screen.getByRole('button', { name: 'Sample Button' });
+    expect(button).toHaveStyle({ backgroundColor: '#222222' });
+  });
+
+  it('falls back to the legacy primaryColor when no designTokens are set', () => {
+    render(<ThemePreview settings={{ primaryColor: '#333333' }} />);
+    const button = screen.getByRole('button', { name: 'Sample Button' });
+    expect(button).toHaveStyle({ backgroundColor: '#333333' });
+  });
+
+  it('switches preview width when a device mode is selected', async () => {
+    const user = userEvent.setup();
+    render(<ThemePreview settings={{}} />);
+
+    await user.click(screen.getByLabelText('Mobile'));
+    expect(screen.getByTestId('theme-preview-frame')).toHaveStyle({ width: '300px' });
+
+    await user.click(screen.getByLabelText('Desktop'));
+    expect(screen.getByTestId('theme-preview-frame')).toHaveStyle({ width: '100%' });
+  });
+
+  it('renders a sample form field and alert', () => {
+    render(<ThemePreview settings={{}} />);
+    expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
+    expect(screen.getByText('This is a sample alert.')).toBeInTheDocument();
   });
 });

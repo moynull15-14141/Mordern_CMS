@@ -1,4 +1,4 @@
-import { MediaStatus, MediaType } from '@prisma/client';
+import { MediaStatus, MediaType, MediaVisibility } from '@prisma/client';
 import { SystemRole } from '../../authorization/interfaces/system-role.enum';
 import { AuthorizationService } from '../../authorization/services/authorization.service';
 import { AuditLoggerService } from '../../../core/logger/audit-logger.service';
@@ -6,6 +6,7 @@ import { MediaRepository } from '../repositories/media.repository';
 import { MediaFolderRepository } from '../repositories/media-folder.repository';
 import { MediaValidator } from '../validators/media.validator';
 import { MediaMapper } from '../mappers/media.mapper';
+import { MediaUrlResolverService } from './media-url-resolver.service';
 import {
   MediaAssetAlreadyDeletedException,
   MediaAssetInUseException,
@@ -21,6 +22,7 @@ function buildAsset(overrides: Record<string, unknown> = {}) {
     id: 'media-1',
     siteId: 'site-1',
     uploadedBy: 'user-1',
+    folderId: null,
     type: MediaType.IMAGE,
     storageKey: 'uploads/photo.png',
     mimeType: 'image/png',
@@ -33,6 +35,12 @@ function buildAsset(overrides: Record<string, unknown> = {}) {
     credit: null,
     metadata: null,
     status: MediaStatus.READY,
+    visibility: MediaVisibility.PUBLIC,
+    variants: null,
+    blurPlaceholder: null,
+    dominantColor: null,
+    exif: null,
+    pinnedAt: null,
     createdAt: new Date('2026-01-01'),
     createdBy: null,
     updatedAt: new Date('2026-01-01'),
@@ -66,6 +74,9 @@ function buildService() {
     findAuthorProfileAuthorsForAssets: jest.fn().mockResolvedValue(new Map()),
     findFeaturedArticlesForAssets: jest.fn().mockResolvedValue(new Map()),
     findArticleMediaLinksForAssets: jest.fn().mockResolvedValue(new Map()),
+    findActivePageBodies: jest.fn().mockResolvedValue([]),
+    findActiveArticleBodies: jest.fn().mockResolvedValue([]),
+    findActiveReusableBlockBodies: jest.fn().mockResolvedValue([]),
   } as unknown as MediaRepository;
 
   const folderRepository = {
@@ -85,16 +96,22 @@ function buildService() {
 
   const auditLogger = { record: jest.fn() } as unknown as AuditLoggerService;
 
+  const urlResolver = {
+    resolveUrls: jest.fn().mockResolvedValue({}),
+    resolveSignedUrl: jest.fn().mockResolvedValue('https://example.com/signed'),
+  } as unknown as MediaUrlResolverService;
+
   const service = new MediaService(
     repository,
     folderRepository,
     validator,
     new MediaMapper(),
     authorizationService,
-    auditLogger
+    auditLogger,
+    urlResolver
   );
 
-  return { service, repository, folderRepository, validator, authorizationService };
+  return { service, repository, folderRepository, validator, authorizationService, urlResolver };
 }
 
 const actor = { id: 'user-1' };
@@ -155,7 +172,7 @@ describe('MediaService', () => {
       expect(validator.assertFilesizeWithinLimit).toHaveBeenCalledWith(1024n);
     });
 
-    it('creates with folderId/filename stored in metadata', async () => {
+    it('creates with folderId connected via the real FK column and filename stored in metadata', async () => {
       const { service, repository } = buildService();
       (repository.create as jest.Mock).mockResolvedValue(buildAsset());
       await service.createMediaAsset(
@@ -170,7 +187,10 @@ describe('MediaService', () => {
         actor
       );
       expect(repository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ metadata: { filename: 'My Photo.png', folderId: 'folder-1' } })
+        expect.objectContaining({
+          metadata: { filename: 'My Photo.png' },
+          folder: { connect: { id: 'folder-1' } },
+        })
       );
     });
   });
@@ -282,31 +302,25 @@ describe('MediaService', () => {
       ).rejects.toThrow(MediaFolderNotFoundException);
     });
 
-    it('moves to a valid folder, stored in metadata.folderId', async () => {
+    it('moves to a valid folder via the real FK column', async () => {
       const { service, repository } = buildService();
       (repository.findById as jest.Mock).mockResolvedValue(buildAsset());
-      (repository.update as jest.Mock).mockResolvedValue(
-        buildAsset({ metadata: { folderId: 'folder-1' } })
-      );
+      (repository.update as jest.Mock).mockResolvedValue(buildAsset({ folderId: 'folder-1' }));
       await service.moveMediaAsset('media-1', { folderId: 'folder-1' }, actor);
       expect(repository.update).toHaveBeenCalledWith(
         'media-1',
-        expect.objectContaining({ metadata: { folderId: 'folder-1' } })
+        expect.objectContaining({ folder: { connect: { id: 'folder-1' } } })
       );
     });
 
-    it('moves to root when folderId is null', async () => {
+    it('disconnects the folder (moves to root) when folderId is null', async () => {
       const { service, repository } = buildService();
-      (repository.findById as jest.Mock).mockResolvedValue(
-        buildAsset({ metadata: { folderId: 'old-folder' } })
-      );
-      (repository.update as jest.Mock).mockResolvedValue(
-        buildAsset({ metadata: { folderId: null } })
-      );
+      (repository.findById as jest.Mock).mockResolvedValue(buildAsset({ folderId: 'old-folder' }));
+      (repository.update as jest.Mock).mockResolvedValue(buildAsset({ folderId: null }));
       await service.moveMediaAsset('media-1', { folderId: null }, actor);
       expect(repository.update).toHaveBeenCalledWith(
         'media-1',
-        expect.objectContaining({ metadata: { folderId: null } })
+        expect.objectContaining({ folder: { disconnect: true } })
       );
     });
   });
@@ -401,6 +415,15 @@ describe('MediaService', () => {
       const duplicates = await service.findDuplicates('media-1');
       expect(duplicates).toHaveLength(1);
       expect(repository.findPossibleDuplicates).toHaveBeenCalledWith('image/png', 1024n, 'media-1');
+    });
+
+    it('getSignedUrl resolves a fresh signed URL for the asset storageKey', async () => {
+      const { service, repository, urlResolver } = buildService();
+      (repository.findById as jest.Mock).mockResolvedValue(buildAsset());
+      (urlResolver.resolveSignedUrl as jest.Mock).mockResolvedValue('https://signed.example.com/x');
+      const result = await service.getSignedUrl('media-1');
+      expect(urlResolver.resolveSignedUrl).toHaveBeenCalledWith('uploads/photo.png');
+      expect(result).toEqual({ url: 'https://signed.example.com/x' });
     });
   });
 });

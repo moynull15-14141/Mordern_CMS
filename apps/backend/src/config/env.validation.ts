@@ -176,6 +176,18 @@ class EnvironmentVariables {
 
   @IsBooleanString()
   FEATURE_MEDIA_ENABLED!: string;
+
+  @IsOptional()
+  @IsIn(['in-process', 'bullmq'])
+  QUEUE_DRIVER?: string;
+
+  @IsOptional()
+  @IsString()
+  CDN_URL?: string;
+
+  @IsOptional()
+  @IsInt()
+  SIGNED_URL_TTL_SECONDS?: number;
 }
 
 export function validateEnv(config: Record<string, unknown>): EnvironmentVariables {

@@ -4,37 +4,33 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ROUTES } from '@/constants/routes';
 import { isApiError } from '@/lib/api-error';
 import { UploadDropzone } from './upload-dropzone';
 import { UploadQueueItemCard } from './upload-queue-item';
-import { useCreateMedia } from '../hooks/use-create-media';
+import { useUploadMedia } from '../hooks/use-upload-media';
 import { extractFileMetadata } from '../utils/extract-file-metadata';
-import { createMediaAssetSchema } from '../schemas/create-media-asset.schema';
-import type { UploadQueueItem } from './upload-queue.types';
+import type { UploadQueueItem, UploadQueueItemStatus } from './upload-queue.types';
 
 function makeLocalId(): string {
   return `q_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
 
+const RESUBMITTABLE_STATUSES: UploadQueueItemStatus[] = ['pending', 'error'];
+
 /**
- * `POST /media` registers metadata only — no file-transfer/upload engine
- * exists on the backend (`create-media-asset.dto.ts`'s own comment: "NO
- * upload engine"). Drag & drop / click-to-browse here select LOCAL files
- * purely to auto-extract real metadata (filename/mimeType/filesize, plus
- * width/height for images and duration for video/audio, read entirely
- * client-side); nothing is transferred anywhere. `storageKey` — the one
- * field with no local source — must be entered manually, since the
- * backend assumes the file already exists at that path. There is no
- * "upload progress" percentage anywhere in this flow for the same reason;
- * each queued item's real status (pending → submitting → success/error)
- * is the honest substitute. See docs/67_FRONTEND_MEDIA.md.
+ * Real presigned-direct-to-R2 upload flow (Milestone 5) — dropping/
+ * selecting a file still extracts metadata client-side first
+ * (`extractFileMetadata`, unchanged), but now actually transfers the
+ * bytes: request a presigned URL → PUT directly to R2 (real progress via
+ * `useUploadMedia`) → confirm → poll until the async processor finishes.
+ * Reuses the existing `UploadDropzone` and queue-item shell — only the
+ * transfer mechanism underneath is new.
  */
 export function UploadPageContent() {
   const router = useRouter();
   const [items, setItems] = useState<UploadQueueItem[]>([]);
-  const createMutation = useCreateMedia();
+  const { uploadFile } = useUploadMedia();
 
   async function handleFilesSelected(files: File[]) {
     const newItems = await Promise.all(
@@ -45,23 +41,26 @@ export function UploadPageContent() {
           file,
           previewUrl: metadata.type === 'IMAGE' ? URL.createObjectURL(file) : null,
           metadata,
-          storageKey: '',
+          mediaAssetId: null,
           folderId: '',
           altText: '',
           caption: '',
           credit: '',
           status: 'pending',
+          progress: 0,
           errorMessage: null,
           result: null,
           abortController: null,
         };
-      }),
+      })
     );
     setItems((prev) => [...prev, ...newItems]);
   }
 
   function updateItem(localId: string, patch: Partial<UploadQueueItem>) {
-    setItems((prev) => prev.map((item) => (item.localId === localId ? { ...item, ...patch } : item)));
+    setItems((prev) =>
+      prev.map((item) => (item.localId === localId ? { ...item, ...patch } : item))
+    );
   }
 
   function removeItem(localId: string) {
@@ -73,41 +72,52 @@ export function UploadPageContent() {
   }
 
   async function submitItem(item: UploadQueueItem) {
-    const parsed = createMediaAssetSchema.safeParse({
-      type: item.metadata.type,
-      storageKey: item.storageKey,
-      mimeType: item.metadata.mimeType,
-      filesize: item.metadata.filesize,
-      width: item.metadata.width,
-      height: item.metadata.height,
-      duration: item.metadata.duration,
-      altText: item.altText || undefined,
-      caption: item.caption || undefined,
-      credit: item.credit || undefined,
-      filename: item.metadata.filename,
-      folderId: item.folderId || undefined,
+    const controller = new AbortController();
+    updateItem(item.localId, {
+      status: 'requesting',
+      progress: 0,
+      errorMessage: null,
+      abortController: controller,
     });
 
-    if (!parsed.success) {
-      updateItem(item.localId, {
-        status: 'error',
-        errorMessage: parsed.error.issues[0]?.message ?? 'Invalid data.',
-      });
-      return;
-    }
-
-    const controller = new AbortController();
-    updateItem(item.localId, { status: 'submitting', errorMessage: null, abortController: controller });
-
     try {
-      const result = await createMutation.mutateAsync({ input: parsed.data, signal: controller.signal });
-      updateItem(item.localId, { status: 'success', result, abortController: null });
+      const result = await uploadFile({
+        input: {
+          type: item.metadata.type,
+          filename: item.metadata.filename,
+          mimeType: item.metadata.mimeType,
+          filesize: item.metadata.filesize,
+          width: item.metadata.width,
+          height: item.metadata.height,
+          duration: item.metadata.duration,
+          folderId: item.folderId || undefined,
+        },
+        file: item.file,
+        metadataPatch: {
+          altText: item.altText || undefined,
+          caption: item.caption || undefined,
+          credit: item.credit || undefined,
+        },
+        signal: controller.signal,
+        onStatusChange: (status) => updateItem(item.localId, { status }),
+        onProgress: (progress) => updateItem(item.localId, { progress }),
+      });
+      updateItem(item.localId, {
+        status: result.status === 'FAILED' ? 'error' : 'success',
+        result,
+        mediaAssetId: result.id,
+        abortController: null,
+        errorMessage:
+          result.status === 'FAILED'
+            ? 'Processing failed — see the asset detail page for the reason.'
+            : null,
+      });
     } catch (error) {
       if (controller.signal.aborted) {
         updateItem(item.localId, { status: 'canceled', abortController: null });
         return;
       }
-      const message = isApiError(error) ? error.message : 'Registration failed. Please try again.';
+      const message = isApiError(error) ? error.message : 'Upload failed. Please try again.';
       updateItem(item.localId, { status: 'error', errorMessage: message, abortController: null });
     }
   }
@@ -121,28 +131,25 @@ export function UploadPageContent() {
     if (item) void submitItem(item);
   }
 
-  async function handleRegisterAll() {
-    const pending = items.filter((item) => item.status === 'pending' || item.status === 'error');
+  async function handleUploadAll() {
+    const pending = items.filter((item) => RESUBMITTABLE_STATUSES.includes(item.status));
     await Promise.allSettled(pending.map((item) => submitItem(item)));
   }
 
-  const pendingCount = items.filter((item) => item.status === 'pending' || item.status === 'error').length;
-  const isSubmitting = items.some((item) => item.status === 'submitting');
-  const allDone = items.length > 0 && items.every((item) => item.status === 'success');
+  const pendingCount = items.filter((item) => RESUBMITTABLE_STATUSES.includes(item.status)).length;
+  const isUploading = items.some((item) =>
+    (['requesting', 'uploading', 'confirming', 'processing'] as UploadQueueItemStatus[]).includes(
+      item.status
+    )
+  );
+  const allDone =
+    items.length > 0 && items.every((item) => item.status === 'success' || item.status === 'error');
 
   return (
     <div className="max-w-3xl space-y-6">
       <PageHeader title="Upload media" />
 
-      <Alert>
-        <AlertDescription>
-          This registers metadata for a file that already exists in storage — the backend has no file-transfer
-          engine, so nothing is actually uploaded here. Pick a file below to auto-fill its metadata, then enter the
-          Storage key where it already lives before registering.
-        </AlertDescription>
-      </Alert>
-
-      <UploadDropzone onFilesSelected={handleFilesSelected} disabled={isSubmitting} />
+      <UploadDropzone onFilesSelected={handleFilesSelected} disabled={isUploading} />
 
       {items.length > 0 ? (
         <div className="space-y-4">
@@ -158,8 +165,12 @@ export function UploadPageContent() {
           ))}
 
           <div className="flex items-center gap-3">
-            <Button type="button" onClick={handleRegisterAll} disabled={pendingCount === 0 || isSubmitting}>
-              Register {pendingCount} file{pendingCount === 1 ? '' : 's'}
+            <Button
+              type="button"
+              onClick={handleUploadAll}
+              disabled={pendingCount === 0 || isUploading}
+            >
+              Upload {pendingCount} file{pendingCount === 1 ? '' : 's'}
             </Button>
             {allDone ? (
               <Button type="button" variant="outline" onClick={() => router.push(ROUTES.MEDIA)}>

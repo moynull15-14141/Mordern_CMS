@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useEditorActions, useEditorBlocks } from '../../context/use-block-editor';
 import { findParentId, getSiblings } from '../../state/block-tree.util';
 import { BlockRow } from './block-row';
-import { BlockTypePicker } from '../block-picker/block-type-picker';
+import { AddBlockButton } from '../block-picker/add-block-button';
 
 const EMPTY_CONTAINER_PREFIX = 'empty-container-';
 
@@ -30,7 +30,7 @@ const EMPTY_CONTAINER_PREFIX = 'empty-container-';
  */
 export function BlockCanvas() {
   const blocks = useEditorBlocks();
-  const { moveBlockTo, insertBlock } = useEditorActions();
+  const { moveBlockTo } = useEditorActions();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   function handleDragEnd(event: DragEndEvent) {
@@ -68,14 +68,15 @@ export function BlockCanvas() {
           )}
         </SortableContext>
       </DndContext>
-      <BlockTypePicker
+      <AddBlockButton
         trigger={
           <Button type="button" variant="outline" size="sm">
             <Plus className="size-4" />
             Add block
           </Button>
         }
-        onSelect={(type) => insertBlock(type, null, blocks.length)}
+        parentId={null}
+        index={blocks.length}
       />
     </div>
   );

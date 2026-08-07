@@ -97,6 +97,37 @@ export function insertBlock(
   });
 }
 
+/** Same as `insertBlock` but for several sibling nodes inserted together
+ * at consecutive positions — used by "insert pattern" (a pattern is a
+ * `BlockNode[]`, not a single node) so the whole group lands as one
+ * history entry instead of N. */
+export function insertBlocks(
+  blocks: BlockNode[],
+  nodes: BlockNode[],
+  parentId: string | null,
+  index: number
+): BlockNode[] {
+  if (parentId === null) {
+    const clamped = Math.max(0, Math.min(index, blocks.length));
+    return [...blocks.slice(0, clamped), ...nodes, ...blocks.slice(clamped)];
+  }
+
+  return blocks.map((block) => {
+    if (block.id === parentId) {
+      const children = block.children ?? [];
+      const clamped = Math.max(0, Math.min(index, children.length));
+      return {
+        ...block,
+        children: [...children.slice(0, clamped), ...nodes, ...children.slice(clamped)],
+      };
+    }
+    if (block.children) {
+      return { ...block, children: insertBlocks(block.children, nodes, parentId, index) };
+    }
+    return block;
+  });
+}
+
 /** Removes `id` from wherever it is, then re-inserts it at
  * `(newParentId, newIndex)` — used by both drag-and-drop reordering and
  * the toolbar's move-up/move-down actions. Returns the original tree

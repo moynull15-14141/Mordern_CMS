@@ -7,7 +7,10 @@ import { resolveChromePosition } from '../utils/resolve-chrome-position.util';
 
 /** Themed site footer — see `theme-header.tsx`'s doc comment for the same
  * "reuses NavMenu, supersedes 13.3's Footer, positioning from
- * `theme.layout.footer`" reasoning ("Footer Fixed" in the brief). */
+ * `theme.layout.footer`" reasoning ("Footer Fixed" in the brief).
+ * Background/heading text read the dedicated `--sportingspy-footer-*`
+ * tokens (Milestone 8's Footer tab) for the same reason `ThemeHeader`
+ * does — independent of the page background, not tied to it. */
 export function ThemeFooter({
   menus,
   theme,
@@ -25,13 +28,13 @@ export function ThemeFooter({
 
   return (
     <footer
-      className={`border-t border-[var(--sportingspy-color-border)] bg-[var(--sportingspy-color-surface)] ${position === 'sticky' ? 'sticky bottom-0' : ''}`}
+      className={`border-t border-[var(--sportingspy-color-border)] bg-[var(--sportingspy-footer-background)] ${position === 'sticky' ? 'sticky bottom-0' : ''}`}
     >
       <div className="container-page flex flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             {siteName ? (
-              <p className="text-base font-semibold text-[var(--sportingspy-color-text)]">
+              <p className="text-base font-semibold text-[var(--sportingspy-footer-text)]">
                 {siteName}
               </p>
             ) : null}

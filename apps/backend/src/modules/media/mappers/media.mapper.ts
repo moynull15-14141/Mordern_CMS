@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { MediaAsset } from '@prisma/client';
 import { MediaAssetMetadata } from '../interfaces/media-metadata.interface';
 import { MediaUsageReference } from '../interfaces/media-usage.interface';
-import { MediaResponseDto } from '../dto/media-response.dto';
+import { MediaResponseDto, MediaUrlsDto } from '../dto/media-response.dto';
 
 @Injectable()
 export class MediaMapper {
@@ -10,7 +10,11 @@ export class MediaMapper {
     return (asset.metadata as MediaAssetMetadata | null) ?? {};
   }
 
-  toResponseDto(asset: MediaAsset, usages: MediaUsageReference[]): MediaResponseDto {
+  toResponseDto(
+    asset: MediaAsset,
+    usages: MediaUsageReference[],
+    urls: MediaUrlsDto
+  ): MediaResponseDto {
     const metadata = this.parseMetadata(asset);
     return {
       id: asset.id,
@@ -18,7 +22,7 @@ export class MediaMapper {
       status: asset.status,
       storageKey: asset.storageKey,
       filename: metadata.filename ?? this.deriveFilenameFromKey(asset.storageKey),
-      folderId: metadata.folderId ?? null,
+      folderId: asset.folderId ?? metadata.folderId ?? null,
       mimeType: asset.mimeType,
       filesize: asset.filesize.toString(),
       width: asset.width,
@@ -28,6 +32,11 @@ export class MediaMapper {
       caption: asset.caption,
       credit: asset.credit,
       uploadedBy: asset.uploadedBy,
+      visibility: asset.visibility,
+      urls,
+      blurPlaceholder: asset.blurPlaceholder,
+      dominantColor: asset.dominantColor,
+      pinnedAt: asset.pinnedAt?.toISOString() ?? null,
       usageCount: usages.length,
       usages,
       createdAt: asset.createdAt.toISOString(),

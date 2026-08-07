@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { MediaListPageContent } from './media-list-page-content';
 import { mediaApi } from '../services/media.api';
 import { mediaFoldersApi } from '../services/media-folders.api';
+import { mediaFavoritesApi } from '../services/media-favorites.api';
 import { PermissionContext, type PermissionContextValue } from '@/providers/permission-provider';
 
 const pushMock = vi.fn();
@@ -15,12 +16,19 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => currentSearchParams,
 }));
 
-vi.mock('../services/media.api', () => ({ mediaApi: { list: vi.fn(), remove: vi.fn(), restore: vi.fn() } }));
+vi.mock('../services/media.api', () => ({
+  mediaApi: { list: vi.fn(), remove: vi.fn(), restore: vi.fn() },
+}));
 vi.mock('../services/media-folders.api', () => ({ mediaFoldersApi: { getTree: vi.fn() } }));
+vi.mock('../services/media-favorites.api', () => ({
+  mediaFavoritesApi: { listFavorites: vi.fn(), listRecent: vi.fn(), listPinned: vi.fn() },
+}));
 vi.mock('@/lib/toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 function wrapper(permissions: string[] = []) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   const permissionValue: PermissionContextValue = {
     permissions,
     roles: [],
@@ -54,6 +62,11 @@ const oneMedia = {
   caption: null,
   credit: null,
   uploadedBy: 'u1',
+  visibility: 'PUBLIC' as const,
+  urls: {},
+  blurPlaceholder: null,
+  dominantColor: null,
+  pinnedAt: null,
   usageCount: 0,
   usages: [],
   createdAt: '2026-01-01T00:00:00.000Z',
@@ -127,5 +140,28 @@ describe('MediaListPageContent', () => {
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => expect(mediaApi.remove).toHaveBeenCalledWith('m1'));
+  });
+
+  it('switches to the Favorites quick filter and renders favorited assets (not the paginated list)', async () => {
+    currentSearchParams = new URLSearchParams({ quick: 'favorites' });
+    vi.mocked(mediaFavoritesApi.listFavorites).mockResolvedValue([oneMedia]);
+    render(<MediaListPageContent />, { wrapper: wrapper() });
+
+    await waitFor(() => expect(screen.getByText('photo.jpg')).toBeInTheDocument());
+    expect(mediaApi.list).not.toHaveBeenCalled();
+  });
+
+  it('selecting a row shows the bulk action toolbar with a selection count', async () => {
+    vi.mocked(mediaApi.list).mockResolvedValue({
+      data: [oneMedia],
+      meta: { pagination: { page: 1, limit: 24, total: 1, hasNext: false, hasPrevious: false } },
+    });
+    const user = userEvent.setup();
+    render(<MediaListPageContent />, { wrapper: wrapper() });
+
+    await waitFor(() => expect(screen.getByText('photo.jpg')).toBeInTheDocument());
+    await user.click(screen.getByRole('checkbox', { name: 'Select photo.jpg' }));
+
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
   });
 });

@@ -88,6 +88,16 @@ export class MediaController {
     return this.mediaService.getUsages(id);
   }
 
+  @Get(':id/signed-url')
+  @RequireAnyPermission(...ANY_MEDIA_PERMISSION)
+  @ApiOperation({
+    summary: 'Resolve a fresh signed URL for this asset (e.g. Copy URL on a PRIVATE asset)',
+  })
+  @ApiParam({ name: 'id' })
+  async getSignedUrl(@Param('id') id: string): Promise<{ url: string }> {
+    return this.mediaService.getSignedUrl(id);
+  }
+
   @Get(':id/duplicates')
   @RequireAnyPermission(...ANY_MEDIA_PERMISSION)
   @ApiOperation({ summary: 'Find likely duplicates (heuristic: same mimeType + filesize)' })

@@ -1,5 +1,5 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ApiWrappedResponse } from '../../../core/responses/api-response.swagger';
 import { Public } from '../../identity/decorators/public.decorator';
 import { PublicPagesService } from '../services/public-pages.service';
@@ -29,5 +29,18 @@ export class PublicPagesController {
   @ApiWrappedResponse(PublicPageResponseDto)
   async getPageBySlug(@Param('slug') slug: string): Promise<PublicPageResponseDto> {
     return this.publicPagesService.getPageBySlug(slug);
+  }
+
+  @Get('preview')
+  @ApiOperation({
+    summary:
+      'Resolve a page (any status) via a short-lived preview token — public route, but the token itself is the credential. ' +
+      "A query param, not a route param — the signed JWT is long enough to trip Fastify/find-my-way's default " +
+      'per-path-param length limit ("exceeding the max param length", a real 414 hit in local testing).',
+  })
+  @ApiQuery({ name: 'token' })
+  @ApiWrappedResponse(PublicPageResponseDto)
+  async getPageForPreview(@Query('token') token: string): Promise<PublicPageResponseDto> {
+    return this.publicPagesService.getPageForPreview(token);
   }
 }

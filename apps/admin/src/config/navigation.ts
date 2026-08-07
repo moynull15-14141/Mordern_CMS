@@ -99,6 +99,13 @@ export const NAVIGATION: NavGroup[] = [
         icon: Blocks,
         permissions: [PERMISSIONS.PAGE_MANAGE],
       },
+      {
+        id: 'patterns',
+        label: 'Patterns',
+        href: ROUTES.PATTERNS,
+        icon: LayoutTemplate,
+        permissions: [PERMISSIONS.PAGE_MANAGE],
+      },
     ],
   },
   {

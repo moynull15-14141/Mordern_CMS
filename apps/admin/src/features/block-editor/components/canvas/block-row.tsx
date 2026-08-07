@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/utils/cn';
 import { useEditorActions, useSelectedId } from '../../context/use-block-editor';
 import { getBlockDefinition } from '../../registry/block-registry';
-import { BlockTypePicker } from '../block-picker/block-type-picker';
+import { AddBlockButton } from '../block-picker/add-block-button';
 import { BlockDropZone } from './block-drop-zone';
 import type { BlockNode } from '../../types/block.types';
 
@@ -21,7 +21,7 @@ import type { BlockNode } from '../../types/block.types';
 export function BlockRow({ block, depth }: { block: BlockNode; depth: number }) {
   const definition = getBlockDefinition(block.type);
   const selectedId = useSelectedId();
-  const { selectBlock, removeBlockById, duplicateBlockById, insertBlock } = useEditorActions();
+  const { selectBlock, removeBlockById, duplicateBlockById } = useEditorActions();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
   });
@@ -66,7 +66,7 @@ export function BlockRow({ block, depth }: { block: BlockNode; depth: number }) 
         {Icon ? <Icon className="size-4 text-muted-foreground" aria-hidden="true" /> : null}
         <span className="flex-1 text-sm">{definition?.label ?? block.type}</span>
         {definition?.container ? (
-          <BlockTypePicker
+          <AddBlockButton
             trigger={
               <Button
                 type="button"
@@ -78,7 +78,8 @@ export function BlockRow({ block, depth }: { block: BlockNode; depth: number }) 
                 <Plus className="size-4" />
               </Button>
             }
-            onSelect={(type) => insertBlock(type, block.id, childIds.length)}
+            parentId={block.id}
+            index={childIds.length}
           />
         ) : null}
         <Button

@@ -10,7 +10,13 @@ import { PermissionContext, type PermissionContextValue } from '@/providers/perm
 const pushMock = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: pushMock }) }));
 vi.mock('../services/themes.api', () => ({
-  themesApi: { get: vi.fn(), remove: vi.fn(), restore: vi.fn(), activate: vi.fn() },
+  themesApi: {
+    get: vi.fn(),
+    remove: vi.fn(),
+    restore: vi.fn(),
+    activate: vi.fn(),
+    create: vi.fn(),
+  },
 }));
 vi.mock('@/lib/toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
@@ -81,6 +87,48 @@ describe('ThemeDetailPageContent', () => {
 
     await user.click(screen.getByRole('button', { name: 'Edit' }));
     expect(pushMock).toHaveBeenCalledWith('/themes/t1/edit');
+  });
+
+  it('Duplicate calls themesApi.create composed from the current theme and navigates to the new theme', async () => {
+    vi.mocked(themesApi.get).mockResolvedValue(theme);
+    vi.mocked(themesApi.create).mockResolvedValue({ ...theme, id: 't2', name: 'Classic (Copy)' });
+    const user = userEvent.setup();
+    render(<ThemeDetailPageContent themeId="t1" />, { wrapper: wrapper() });
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Duplicate' })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: 'Duplicate' }));
+
+    await waitFor(() =>
+      expect(themesApi.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Classic (Copy)' })
+      )
+    );
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/themes/t2'));
+  });
+
+  it('Export triggers a JSON download of the theme', async () => {
+    vi.mocked(themesApi.get).mockResolvedValue(theme);
+    const clickSpy = vi.fn();
+    const originalCreateElement = document.createElement.bind(document);
+    const createElementSpy = vi
+      .spyOn(document, 'createElement')
+      .mockImplementation((tag: string) => {
+        if (tag === 'a') {
+          return { click: clickSpy, href: '', download: '' } as unknown as HTMLAnchorElement;
+        }
+        return originalCreateElement(tag);
+      });
+    URL.createObjectURL = vi.fn().mockReturnValue('blob:mock');
+    URL.revokeObjectURL = vi.fn();
+
+    const user = userEvent.setup();
+    render(<ThemeDetailPageContent themeId="t1" />, { wrapper: wrapper() });
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+
+    expect(clickSpy).toHaveBeenCalled();
+    createElementSpy.mockRestore();
   });
 
   it('disables the Activate button for the already-active theme', async () => {

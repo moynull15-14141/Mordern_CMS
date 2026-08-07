@@ -114,7 +114,14 @@ export function MediaDetailPageContent({ mediaId }: MediaDetailPageContentProps)
 
       <Card>
         <CardHeader className="flex flex-row items-center gap-3">
-          <MediaThumbnail type={media.type} className="size-16 shrink-0" />
+          <MediaThumbnail
+            type={media.type}
+            className="size-16 shrink-0"
+            status={media.status}
+            thumbnailUrl={media.urls.medium ?? media.urls.thumbnail}
+            blurPlaceholder={media.blurPlaceholder}
+            alt={media.altText ?? undefined}
+          />
           <div className="space-y-1">
             <CardTitle>{media.filename}</CardTitle>
             <StatusBadge status={media.status} />
@@ -122,7 +129,8 @@ export function MediaDetailPageContent({ mediaId }: MediaDetailPageContentProps)
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            No preview or download is available — the backend has no file-serving endpoint (metadata-only catalog).
+            No preview or download is available — the backend has no file-serving endpoint
+            (metadata-only catalog).
           </p>
 
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
@@ -198,7 +206,10 @@ export function MediaDetailPageContent({ mediaId }: MediaDetailPageContentProps)
           ) : (
             <ul className="space-y-2 text-sm">
               {usages.map((usage) => (
-                <li key={`${usage.source}-${usage.id}`} className="flex items-center justify-between border-b border-border pb-2">
+                <li
+                  key={`${usage.source}-${usage.id}`}
+                  className="flex items-center justify-between border-b border-border pb-2"
+                >
                   <span>{usage.label}</span>
                   <span className="text-xs text-muted-foreground">{usage.source}</span>
                 </li>
@@ -216,9 +227,14 @@ export function MediaDetailPageContent({ mediaId }: MediaDetailPageContentProps)
           <CardContent>
             <ul className="space-y-2 text-sm">
               {duplicates.map((duplicate) => (
-                <li key={duplicate.id} className="flex items-center justify-between border-b border-border pb-2">
+                <li
+                  key={duplicate.id}
+                  className="flex items-center justify-between border-b border-border pb-2"
+                >
                   <span>{duplicate.filename}</span>
-                  <span className="text-xs text-muted-foreground">{formatFileSize(duplicate.filesize)}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatFileSize(duplicate.filesize)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -242,7 +258,9 @@ export function MediaDetailPageContent({ mediaId }: MediaDetailPageContentProps)
         open={renameOpen}
         onOpenChange={setRenameOpen}
         currentFilename={media.filename}
-        onSubmit={(input) => renameMutation.mutate(input, { onSuccess: () => setRenameOpen(false) })}
+        onSubmit={(input) =>
+          renameMutation.mutate(input, { onSuccess: () => setRenameOpen(false) })
+        }
         isSubmitting={renameMutation.isPending}
       />
       <MoveMediaDialog

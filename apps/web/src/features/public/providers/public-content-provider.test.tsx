@@ -28,6 +28,7 @@ const context: RenderContext = {
     },
     customCss: null,
     customJs: null,
+    designTokens: null,
   },
   menus: {
     header: { id: 'm1', name: 'Header', slug: 'header-menu', location: 'header', items: [] },

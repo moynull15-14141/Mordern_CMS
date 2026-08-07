@@ -33,6 +33,9 @@ export interface MediaGridProps {
   onView: (media: Media) => void;
   onDelete: (media: Media) => void;
   onRestore: (media: Media) => void;
+  /** Bulk-select (Milestone 5) — omit both to keep the grid selection-free. */
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 /** Media List — Grid View. Reuses `SearchInput`/`DataTablePagination`
@@ -54,6 +57,8 @@ export function MediaGrid({
   onView,
   onDelete,
   onRestore,
+  selectedIds,
+  onToggleSelect,
 }: MediaGridProps) {
   return (
     <div className="space-y-4">
@@ -78,13 +83,39 @@ export function MediaGrid({
       ) : error ? (
         <ErrorState error={error} onRetry={onRetry} />
       ) : data.length === 0 ? (
-        <EmptyState title="No media yet" description="Register your first media asset to get started." />
+        <EmptyState
+          title="No media yet"
+          description="Register your first media asset to get started."
+        />
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {data.map((media) => (
-            <div key={media.id} className="group relative space-y-1.5 rounded-md border border-border p-2">
-              <button type="button" onClick={() => onView(media)} className="block w-full text-left">
-                <MediaThumbnail type={media.type} className="aspect-square w-full" />
+            <div
+              key={media.id}
+              className="group relative space-y-1.5 rounded-md border border-border p-2"
+            >
+              {onToggleSelect ? (
+                <input
+                  type="checkbox"
+                  checked={selectedIds?.has(media.id) ?? false}
+                  onChange={() => onToggleSelect(media.id)}
+                  aria-label={`Select ${media.filename}`}
+                  className="absolute right-3 top-3 z-10 size-4"
+                />
+              ) : null}
+              <button
+                type="button"
+                onClick={() => onView(media)}
+                className="block w-full text-left"
+              >
+                <MediaThumbnail
+                  type={media.type}
+                  className="aspect-square w-full"
+                  status={media.status}
+                  thumbnailUrl={media.urls.thumbnail ?? media.urls.small}
+                  blurPlaceholder={media.blurPlaceholder}
+                  alt={media.altText ?? undefined}
+                />
               </button>
               <div className="flex items-start justify-between gap-1">
                 <div className="min-w-0">
@@ -93,7 +124,12 @@ export function MediaGrid({
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-6 shrink-0" aria-label={`Actions for ${media.filename}`}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 shrink-0"
+                      aria-label={`Actions for ${media.filename}`}
+                    >
                       <MoreHorizontal className="size-3.5" aria-hidden="true" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -102,7 +138,10 @@ export function MediaGrid({
                     {media.deletedAt ? (
                       <DropdownMenuItem onSelect={() => onRestore(media)}>Restore</DropdownMenuItem>
                     ) : (
-                      <DropdownMenuItem onSelect={() => onDelete(media)} className="text-destructive">
+                      <DropdownMenuItem
+                        onSelect={() => onDelete(media)}
+                        className="text-destructive"
+                      >
                         Delete
                       </DropdownMenuItem>
                     )}
@@ -118,7 +157,11 @@ export function MediaGrid({
       )}
 
       {pagination ? (
-        <DataTablePagination pagination={pagination} onPageChange={onPageChange} onLimitChange={onLimitChange} />
+        <DataTablePagination
+          pagination={pagination}
+          onPageChange={onPageChange}
+          onLimitChange={onLimitChange}
+        />
       ) : null}
     </div>
   );

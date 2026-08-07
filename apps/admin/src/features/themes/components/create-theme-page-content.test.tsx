@@ -60,12 +60,43 @@ describe('CreateThemePageContent', () => {
     render(<CreateThemePageContent />, { wrapper: wrapper() });
 
     await user.type(screen.getByLabelText('Name'), 'Classic');
+    await user.click(screen.getByRole('tab', { name: 'Advanced' }));
     await user.type(screen.getByLabelText('Primary Color'), '#112233');
     await user.click(screen.getByRole('button', { name: 'Create theme' }));
 
     await waitFor(() =>
       expect(themesApi.create).toHaveBeenCalledWith(
         expect.objectContaining({ settings: expect.objectContaining({ primaryColor: '#112233' }) })
+      )
+    );
+  });
+
+  // Regression test: designTokens (everything entered in the Site Design
+  // Colors/Typography/Buttons/… tabs) was being silently dropped from the
+  // create payload — `toSettingsInput` rebuilt `settings` from only the
+  // legacy flat fields and never copied `values.settings.designTokens`
+  // across, so nothing set via the new tabs was ever actually saved.
+  it('includes designTokens set via the Site Design Colors tab in the settings payload', async () => {
+    vi.mocked(themesApi.create).mockResolvedValue({ id: 't1' } as never);
+    const user = userEvent.setup();
+    render(<CreateThemePageContent />, { wrapper: wrapper() });
+
+    await user.type(screen.getByLabelText('Name'), 'Classic');
+    await user.click(screen.getByRole('tab', { name: 'Colors' }));
+    await user.type(screen.getByLabelText('Primary'), '#654321');
+    await user.click(screen.getByRole('button', { name: 'Create theme' }));
+
+    await waitFor(() =>
+      expect(themesApi.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          settings: expect.objectContaining({
+            designTokens: expect.objectContaining({
+              colors: expect.objectContaining({
+                brand: expect.objectContaining({ primary: '#654321' }),
+              }),
+            }),
+          }),
+        })
       )
     );
   });

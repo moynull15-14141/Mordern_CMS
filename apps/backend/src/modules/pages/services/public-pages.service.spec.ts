@@ -2,6 +2,7 @@ import { ContentStatus } from '@prisma/client';
 import { PagesService } from './pages.service';
 import { PublicPagesMapper } from '../mappers/public-pages.mapper';
 import { PublicPagesService } from './public-pages.service';
+import { PagePreviewService } from './page-preview.service';
 import { PageNotFoundException } from '../exceptions/page.exceptions';
 import { PageResponseDto } from '../dto/page-response.dto';
 
@@ -24,9 +25,13 @@ function buildPageResponseDto(overrides: Partial<PageResponseDto> = {}): PageRes
 function buildService() {
   const pagesService = {
     getPageBySlug: jest.fn(),
+    getPage: jest.fn(),
   } as unknown as PagesService;
-  const service = new PublicPagesService(pagesService, new PublicPagesMapper());
-  return { service, pagesService };
+  const pagePreviewService = {
+    resolvePreviewToken: jest.fn(),
+  } as unknown as PagePreviewService;
+  const service = new PublicPagesService(pagesService, new PublicPagesMapper(), pagePreviewService);
+  return { service, pagesService, pagePreviewService };
 }
 
 describe('PublicPagesService', () => {
@@ -104,6 +109,32 @@ describe('PublicPagesService', () => {
       await expect(service.resolvePublishedIdBySlug('about-us')).rejects.toThrow(
         PageNotFoundException
       );
+    });
+  });
+
+  describe('getPageForPreview', () => {
+    it('resolves the token to a page id and returns the public shape regardless of status', async () => {
+      const { service, pagesService, pagePreviewService } = buildService();
+      (pagePreviewService.resolvePreviewToken as jest.Mock).mockReturnValue('page-1');
+      (pagesService.getPage as jest.Mock).mockResolvedValue(
+        buildPageResponseDto({ status: ContentStatus.DRAFT })
+      );
+
+      const result = await service.getPageForPreview('a-valid-token');
+
+      expect(pagePreviewService.resolvePreviewToken).toHaveBeenCalledWith('a-valid-token');
+      expect(pagesService.getPage).toHaveBeenCalledWith('page-1');
+      expect(result.slug).toBe('about-us');
+    });
+
+    it('propagates the underlying rejection for an invalid/expired token', async () => {
+      const { service, pagesService, pagePreviewService } = buildService();
+      (pagePreviewService.resolvePreviewToken as jest.Mock).mockImplementation(() => {
+        throw new Error('invalid token');
+      });
+
+      await expect(service.getPageForPreview('bad-token')).rejects.toThrow('invalid token');
+      expect(pagesService.getPage).not.toHaveBeenCalled();
     });
   });
 });

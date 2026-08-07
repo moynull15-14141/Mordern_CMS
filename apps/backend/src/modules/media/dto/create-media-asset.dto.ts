@@ -12,11 +12,12 @@ import {
 } from 'class-validator';
 
 /**
- * Registers a `MediaAsset` row — metadata only. No file bytes are accepted
- * or transferred anywhere ("NO upload engine" per instruction); the caller
- * is responsible for having already placed the object at `storageKey` via
- * whatever (not-yet-implemented) StorageProvider the deployment eventually
- * wires in. See docs/48_MEDIA_LIBRARY_ARCHITECTURE.md "Storage Flow".
+ * Registers a `MediaAsset` row for an object the caller has already placed
+ * in storage by some other means (e.g. a server-side import/migration) —
+ * metadata only, no file bytes accepted here. For a real end-user upload,
+ * use `MediaUploadController`'s presigned-URL flow
+ * (`POST /media/upload-requests` → PUT → `POST /media/:id/confirm-upload`,
+ * Milestone 5) instead.
  */
 export class CreateMediaAssetDto {
   @ApiProperty({ enum: MediaType })

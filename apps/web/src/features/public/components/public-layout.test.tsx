@@ -24,6 +24,7 @@ const context: RenderContext = {
     },
     customCss: null,
     customJs: null,
+    designTokens: null,
   },
   menus: { header: null, footer: null, secondary: null },
   site: null,

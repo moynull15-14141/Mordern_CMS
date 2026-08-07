@@ -17,10 +17,12 @@ import { PERMISSIONS } from '../../authorization/interfaces/permission.constants
 import { CurrentUser } from '../../identity/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../identity/interfaces/authenticated-user.interface';
 import { PagesService } from '../services/pages.service';
+import { PagePreviewService } from '../services/page-preview.service';
 import { CreatePageDto } from '../dto/create-page.dto';
 import { UpdatePageDto } from '../dto/update-page.dto';
 import { PageQueryDto } from '../dto/page-query.dto';
 import { PageResponseDto } from '../dto/page-response.dto';
+import { PreviewTokenResponseDto } from '../dto/preview-token-response.dto';
 import { PaginatedResult } from '../../../common/dto/pagination.dto';
 
 /**
@@ -36,7 +38,10 @@ import { PaginatedResult } from '../../../common/dto/pagination.dto';
 @RequirePermission(PERMISSIONS.PAGE_MANAGE)
 @Controller('pages')
 export class PagesController {
-  constructor(private readonly pagesService: PagesService) {}
+  constructor(
+    private readonly pagesService: PagesService,
+    private readonly pagePreviewService: PagePreviewService
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List/search/filter/sort pages (paginated)' })
@@ -109,6 +114,15 @@ export class PagesController {
     @CurrentUser() user: AuthenticatedUser
   ): Promise<PageResponseDto> {
     return this.pagesService.restorePage(id, { id: user.id });
+  }
+
+  @Post(':id/preview-token')
+  @ApiOperation({ summary: 'Mint a short-lived token for the public draft-preview route' })
+  @ApiParam({ name: 'id' })
+  @ApiWrappedResponse(PreviewTokenResponseDto)
+  async createPreviewToken(@Param('id') id: string): Promise<PreviewTokenResponseDto> {
+    await this.pagesService.getPage(id);
+    return { token: this.pagePreviewService.createPreviewToken(id) };
   }
 
   @Post(':id/publish')

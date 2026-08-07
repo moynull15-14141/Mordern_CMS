@@ -11,6 +11,11 @@ import { MediaOwnershipPolicy } from '../policies/media-ownership.policy';
 import { MediaAssetMetadata } from '../interfaces/media-metadata.interface';
 import { MediaUsageReference } from '../interfaces/media-usage.interface';
 import { MediaQueryOptions } from '../interfaces/media-query.interface';
+import { MediaUrlResolverService } from './media-url-resolver.service';
+import {
+  collectMediaReferenceIds,
+  type MediaRefBlockNodeLike,
+} from '../../content-blocks/utils/media-reference-collector.util';
 import { CreateMediaAssetDto } from '../dto/create-media-asset.dto';
 import { UpdateMediaAssetDto } from '../dto/update-media-asset.dto';
 import { RenameMediaAssetDto } from '../dto/rename-media-asset.dto';
@@ -30,6 +35,14 @@ interface ActingUser {
   id: string;
 }
 
+function extractBlocks(body: unknown): MediaRefBlockNodeLike[] {
+  return typeof body === 'object' &&
+    body !== null &&
+    Array.isArray((body as { blocks?: unknown }).blocks)
+    ? ((body as { blocks: unknown }).blocks as MediaRefBlockNodeLike[])
+    : [];
+}
+
 @Injectable()
 export class MediaService {
   constructor(
@@ -38,7 +51,8 @@ export class MediaService {
     private readonly validator: MediaValidator,
     private readonly mapper: MediaMapper,
     private readonly authorizationService: AuthorizationService,
-    private readonly auditLogger: AuditLoggerService
+    private readonly auditLogger: AuditLoggerService,
+    private readonly urlResolver: MediaUrlResolverService
   ) {}
 
   private async getAssetOrThrow(id: string, includeDeleted = false) {
@@ -74,12 +88,72 @@ export class MediaService {
     }
   }
 
+  /**
+   * `media-ref` usage detection (Milestone 5) — Page/Article/ReusableBlock
+   * have no relational FK to `MediaAsset` for block-tree references, so
+   * this walks every active body once (via `collectMediaReferenceIds`) and
+   * buckets matches by asset id, batched across all requested
+   * `mediaAssetIds` in a single pass — mirrors
+   * `ReusableBlocksService.computeUsages`'s identical body-scan shape, and
+   * `findUserProfileUsersForAssets`'s N+1-safe batching precedent above.
+   */
+  private async computeBodyUsagesForAssets(
+    mediaAssetIds: string[],
+    siteId: string
+  ): Promise<Map<string, MediaUsageReference[]>> {
+    const map = new Map<string, MediaUsageReference[]>();
+    if (mediaAssetIds.length === 0) return map;
+    const idSet = new Set(mediaAssetIds);
+
+    const add = (assetId: string, usage: MediaUsageReference) => {
+      const bucket = map.get(assetId) ?? [];
+      bucket.push(usage);
+      map.set(assetId, bucket);
+    };
+
+    const [pages, articles, reusableBlocks] = await Promise.all([
+      this.repository.findActivePageBodies(siteId),
+      this.repository.findActiveArticleBodies(siteId),
+      this.repository.findActiveReusableBlockBodies(siteId),
+    ]);
+
+    for (const page of pages) {
+      for (const mediaId of collectMediaReferenceIds(extractBlocks(page.body))) {
+        if (idSet.has(mediaId))
+          add(mediaId, { source: 'Page.body', id: page.id, label: page.title });
+      }
+    }
+    for (const article of articles) {
+      for (const mediaId of collectMediaReferenceIds(extractBlocks(article.body))) {
+        if (idSet.has(mediaId)) {
+          add(mediaId, { source: 'Article.body', id: article.id, label: article.title });
+        }
+      }
+    }
+    for (const block of reusableBlocks) {
+      const node: MediaRefBlockNodeLike = {
+        type: block.blockType,
+        data: (block.data as Record<string, unknown>) ?? {},
+        children: (block.children as unknown as MediaRefBlockNodeLike[] | undefined) ?? undefined,
+      };
+      for (const mediaId of collectMediaReferenceIds([node])) {
+        if (idSet.has(mediaId)) {
+          add(mediaId, { source: 'ReusableBlock.body', id: block.id, label: block.name });
+        }
+      }
+    }
+
+    return map;
+  }
+
   private async computeUsages(mediaAssetId: string): Promise<MediaUsageReference[]> {
-    const [users, authors, articles, articleMediaLinks] = await Promise.all([
+    const site = await this.repository.getDefaultSite();
+    const [users, authors, articles, articleMediaLinks, bodyUsagesByAsset] = await Promise.all([
       this.repository.findUserProfileUsers(mediaAssetId),
       this.repository.findAuthorProfileAuthors(mediaAssetId),
       this.repository.findFeaturedArticles(mediaAssetId),
       this.repository.findArticleMediaLinks(mediaAssetId),
+      this.computeBodyUsagesForAssets([mediaAssetId], site.id),
     ]);
 
     const usages: MediaUsageReference[] = [];
@@ -99,6 +173,7 @@ export class MediaService {
     for (const link of articleMediaLinks) {
       usages.push({ source: 'ArticleMedia', id: link.articleId, label: link.article.title });
     }
+    usages.push(...(bodyUsagesByAsset.get(mediaAssetId) ?? []));
     return usages;
   }
 
@@ -108,8 +183,11 @@ export class MediaService {
     if (!asset) {
       throw new Error('toResponseDto called with a null media asset');
     }
-    const usages = await this.computeUsages(asset.id);
-    return this.mapper.toResponseDto(asset, usages);
+    const [usages, urls] = await Promise.all([
+      this.computeUsages(asset.id),
+      this.urlResolver.resolveUrls(asset, { includeOriginal: true }),
+    ]);
+    return this.mapper.toResponseDto(asset, usages, urls);
   }
 
   /**
@@ -123,14 +201,26 @@ export class MediaService {
   private async toResponseDtos(assets: MediaAsset[]): Promise<MediaResponseDto[]> {
     if (assets.length === 0) return [];
     const ids = assets.map((a) => a.id);
-    const [usersByAsset, authorsByAsset, articlesByAsset, linksByAsset] = await Promise.all([
+    const [
+      usersByAsset,
+      authorsByAsset,
+      articlesByAsset,
+      linksByAsset,
+      bodyUsagesByAsset,
+      urlsByAsset,
+    ] = await Promise.all([
       this.repository.findUserProfileUsersForAssets(ids),
       this.repository.findAuthorProfileAuthorsForAssets(ids),
       this.repository.findFeaturedArticlesForAssets(ids),
       this.repository.findArticleMediaLinksForAssets(ids),
+      this.computeBodyUsagesForAssets(ids, assets[0].siteId),
+      // includeOriginal: false — avoid signing 20-50 URLs per list page for PRIVATE assets.
+      Promise.all(
+        assets.map((asset) => this.urlResolver.resolveUrls(asset, { includeOriginal: false }))
+      ),
     ]);
 
-    return assets.map((asset) => {
+    return assets.map((asset, index) => {
       const usages: MediaUsageReference[] = [];
       for (const user of usersByAsset.get(asset.id) ?? []) {
         usages.push({
@@ -148,7 +238,8 @@ export class MediaService {
       for (const link of linksByAsset.get(asset.id) ?? []) {
         usages.push({ source: 'ArticleMedia', id: link.articleId, label: link.article.title });
       }
-      return this.mapper.toResponseDto(asset, usages);
+      usages.push(...(bodyUsagesByAsset.get(asset.id) ?? []));
+      return this.mapper.toResponseDto(asset, usages, urlsByAsset[index]);
     });
   }
 
@@ -176,11 +267,12 @@ export class MediaService {
 
     const metadata: MediaAssetMetadata = {};
     if (dto.filename) metadata.filename = dto.filename;
-    if (dto.folderId) metadata.folderId = dto.folderId;
 
     const created = await this.repository.create({
       site: { connect: { id: site.id } },
       uploader: { connect: { id: actor.id } },
+      // Real FK column (Milestone 5) — metadata.folderId is legacy-read-only from here on.
+      folder: dto.folderId ? { connect: { id: dto.folderId } } : undefined,
       type: dto.type,
       storageKey: dto.storageKey,
       mimeType: dto.mimeType,
@@ -280,11 +372,9 @@ export class MediaService {
     await this.assertCanManage(actor, existing.uploadedBy, 'update');
     await this.assertFolderExists(dto.folderId ?? undefined);
 
-    const metadata = this.mergeMetadata((existing.metadata as MediaAssetMetadata | null) ?? {}, {
-      folderId: dto.folderId ?? null,
-    });
     const updated = await this.repository.update(id, {
-      metadata: metadata as Prisma.InputJsonValue,
+      // Real FK column (Milestone 5) — metadata.folderId is legacy-read-only from here on.
+      folder: dto.folderId ? { connect: { id: dto.folderId } } : { disconnect: true },
       updatedBy: actor.id,
     });
 
@@ -376,6 +466,22 @@ export class MediaService {
   async getUsages(id: string): Promise<MediaUsageReference[]> {
     await this.getAssetOrThrow(id);
     return this.computeUsages(id);
+  }
+
+  /** Same as `getUsages` but permits an already soft-deleted asset — the
+   * final in-use check `MediaBulkService.permanentDelete` runs
+   * immediately before a real hard-delete ("Trash, then Purge"). */
+  async getUsagesIncludingDeleted(id: string): Promise<MediaUsageReference[]> {
+    await this.getAssetOrThrow(id, true);
+    return this.computeUsages(id);
+  }
+
+  /** On-demand resolution for a PRIVATE asset whose `urls.original` was
+   * omitted from a list response (avoid signing 20–50 URLs per page). */
+  async getSignedUrl(id: string): Promise<{ url: string }> {
+    const asset = await this.getAssetOrThrow(id);
+    const url = await this.urlResolver.resolveSignedUrl(asset.storageKey);
+    return { url };
   }
 
   async findDuplicates(id: string): Promise<MediaResponseDto[]> {

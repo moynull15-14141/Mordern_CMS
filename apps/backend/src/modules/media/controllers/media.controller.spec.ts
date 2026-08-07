@@ -9,6 +9,7 @@ function buildController() {
     getMediaAsset: jest.fn().mockResolvedValue({}),
     getUsages: jest.fn().mockResolvedValue([]),
     findDuplicates: jest.fn().mockResolvedValue([]),
+    getSignedUrl: jest.fn().mockResolvedValue({ url: 'https://signed.example.com/x' }),
     createMediaAsset: jest.fn().mockResolvedValue({}),
     updateMediaAsset: jest.fn().mockResolvedValue({}),
     renameMediaAsset: jest.fn().mockResolvedValue({}),
@@ -58,6 +59,13 @@ describe('MediaController', () => {
     const { controller, mediaService } = buildController();
     await controller.getDuplicates('media-1');
     expect(mediaService.findDuplicates).toHaveBeenCalledWith('media-1');
+  });
+
+  it('getSignedUrl delegates with the id param', async () => {
+    const { controller, mediaService } = buildController();
+    const result = await controller.getSignedUrl('media-1');
+    expect(mediaService.getSignedUrl).toHaveBeenCalledWith('media-1');
+    expect(result).toEqual({ url: 'https://signed.example.com/x' });
   });
 
   it('createMedia passes the current user id as actor', async () => {

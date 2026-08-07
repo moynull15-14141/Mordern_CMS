@@ -78,7 +78,8 @@ export type BlockFieldKind =
   | 'select'
   | 'color'
   | 'list'
-  | 'reusable-block-ref';
+  | 'reusable-block-ref'
+  | 'media-ref';
 
 export interface BlockFieldOption {
   value: string;
@@ -154,7 +155,7 @@ export const BLOCK_TYPE_DESCRIPTORS: Record<BlockType, BlockTypeDescriptor> = {
     container: false,
     description: 'A single image with alt text and an optional caption.',
     fields: [
-      { key: 'url', label: 'Image URL', kind: 'url', required: true },
+      { key: 'mediaId', label: 'Image', kind: 'media-ref', required: true },
       { key: 'alt', label: 'Alt text', kind: 'text', required: true },
       { key: 'caption', label: 'Caption', kind: 'text' },
     ],
@@ -170,7 +171,7 @@ export const BLOCK_TYPE_DESCRIPTORS: Record<BlockType, BlockTypeDescriptor> = {
         key: 'images',
         label: 'Images',
         ...listOf([
-          { key: 'url', label: 'Image URL', kind: 'url', required: true },
+          { key: 'mediaId', label: 'Image', kind: 'media-ref', required: true },
           { key: 'alt', label: 'Alt text', kind: 'text', required: true },
           { key: 'caption', label: 'Caption', kind: 'text' },
         ]),
@@ -184,8 +185,8 @@ export const BLOCK_TYPE_DESCRIPTORS: Record<BlockType, BlockTypeDescriptor> = {
     container: false,
     description: 'A self-hosted / direct-link video file.',
     fields: [
-      { key: 'url', label: 'Video URL', kind: 'url', required: true },
-      { key: 'poster', label: 'Poster image URL', kind: 'url' },
+      { key: 'mediaId', label: 'Video', kind: 'media-ref', required: true },
+      { key: 'posterMediaId', label: 'Poster image', kind: 'media-ref' },
       { key: 'caption', label: 'Caption', kind: 'text' },
     ],
   },
@@ -418,7 +419,7 @@ export const BLOCK_TYPE_DESCRIPTORS: Record<BlockType, BlockTypeDescriptor> = {
     container: false,
     description: 'A downloadable file link.',
     fields: [
-      { key: 'url', label: 'File URL', kind: 'url', required: true },
+      { key: 'mediaId', label: 'File', kind: 'media-ref', required: true },
       { key: 'filename', label: 'Display filename', kind: 'text' },
       {
         key: 'filesize',

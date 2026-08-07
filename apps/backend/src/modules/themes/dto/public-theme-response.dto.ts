@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { DesignTokensDto } from './design-tokens.dto';
 
 export class PublicThemeColorsDto {
   @ApiProperty({ nullable: true })
@@ -77,4 +78,7 @@ export class PublicThemeResponseDto {
 
   @ApiProperty({ nullable: true })
   customJs!: string | null;
+
+  @ApiProperty({ type: DesignTokensDto, nullable: true })
+  designTokens!: DesignTokensDto | null;
 }

@@ -1,6 +1,32 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { MediaStatus, MediaType } from '@prisma/client';
+import { MediaStatus, MediaType, MediaVisibility } from '@prisma/client';
 import { MediaUsageReferenceDto } from './media-usage.dto';
+
+export class MediaUrlsDto {
+  @ApiProperty({
+    required: false,
+    description: 'Omitted from list responses for PRIVATE assets — see MediaUrlResolverService.',
+  })
+  original?: string;
+
+  @ApiProperty({ required: false })
+  thumbnail?: string;
+
+  @ApiProperty({ required: false })
+  small?: string;
+
+  @ApiProperty({ required: false })
+  medium?: string;
+
+  @ApiProperty({ required: false })
+  large?: string;
+
+  @ApiProperty({ required: false })
+  webp?: string;
+
+  @ApiProperty({ required: false })
+  avif?: string;
+}
 
 export class MediaResponseDto {
   @ApiProperty()
@@ -56,6 +82,24 @@ export class MediaResponseDto {
 
   @ApiProperty()
   uploadedBy!: string;
+
+  @ApiProperty({ enum: MediaVisibility })
+  visibility!: MediaVisibility;
+
+  @ApiProperty({ type: MediaUrlsDto })
+  urls!: MediaUrlsDto;
+
+  @ApiProperty({ nullable: true })
+  blurPlaceholder!: string | null;
+
+  @ApiProperty({ nullable: true })
+  dominantColor!: string | null;
+
+  @ApiProperty({
+    nullable: true,
+    description: 'Global/site-wide pin timestamp — distinct from per-user favorites.',
+  })
+  pinnedAt!: string | null;
 
   @ApiProperty({ description: 'Count of detected structural references — see "Usage Detection".' })
   usageCount!: number;

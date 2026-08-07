@@ -26,6 +26,7 @@ const baseTheme: PublicTheme = {
   },
   customCss: null,
   customJs: null,
+  designTokens: null,
 };
 
 describe('ThemeFooter', () => {
@@ -111,5 +112,23 @@ describe('ThemeFooter', () => {
       />
     );
     expect(container.querySelector('footer')).toHaveClass('sticky');
+  });
+
+  // Regression test: the footer's background/heading text used to read
+  // `--sportingspy-color-surface`/`-text` — variables shared with other
+  // parts of the page — instead of its own dedicated Footer tab tokens.
+  it('reads the dedicated --sportingspy-footer-background/-text tokens, not the shared surface/text ones', () => {
+    const { container } = render(
+      <ThemeFooter
+        menus={emptyMenus}
+        theme={baseTheme}
+        settings={[{ key: 'general.siteName', label: 'Site Name', value: 'SportingSpy' }]}
+      />
+    );
+    const footer = container.querySelector('footer');
+    expect(footer?.className).toContain('bg-[var(--sportingspy-footer-background)]');
+    expect(footer?.className).not.toContain('bg-[var(--sportingspy-color-surface)]');
+    const heading = screen.getByText('SportingSpy');
+    expect(heading.className).toContain('text-[var(--sportingspy-footer-text)]');
   });
 });

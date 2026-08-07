@@ -13,3 +13,9 @@ export const mediaKeys = {
 export const mediaFolderKeys = {
   tree: () => ['media-folders', 'tree'] as const,
 };
+
+export const mediaEngagementKeys = {
+  favorites: () => ['media', 'favorites'] as const,
+  recent: () => ['media', 'recent'] as const,
+  pinned: () => ['media', 'pinned'] as const,
+};

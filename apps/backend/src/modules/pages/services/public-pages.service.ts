@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ContentStatus } from '@prisma/client';
 import { PagesService } from './pages.service';
+import { PagePreviewService } from './page-preview.service';
 import { PublicPagesMapper } from '../mappers/public-pages.mapper';
 import { PublicPageResponseDto } from '../dto/public-page-response.dto';
 import { PageResponseDto } from '../dto/page-response.dto';
@@ -25,7 +26,8 @@ import { PageNotFoundException } from '../exceptions/page.exceptions';
 export class PublicPagesService {
   constructor(
     private readonly pagesService: PagesService,
-    private readonly mapper: PublicPagesMapper
+    private readonly mapper: PublicPagesMapper,
+    private readonly pagePreviewService: PagePreviewService
   ) {}
 
   private async getPublishedOrThrow(slug: string): Promise<PageResponseDto> {
@@ -50,5 +52,15 @@ export class PublicPagesService {
   async resolvePublishedIdBySlug(slug: string): Promise<string> {
     const page = await this.getPublishedOrThrow(slug);
     return page.id;
+  }
+
+  /** No status gate — unlike every other method here, a preview token is
+   * itself the authorization (short-lived, minted only from the
+   * admin-authenticated `POST /pages/:id/preview-token`), so a DRAFT/
+   * REVIEW page resolves normally instead of 404ing. */
+  async getPageForPreview(token: string): Promise<PublicPageResponseDto> {
+    const pageId = this.pagePreviewService.resolvePreviewToken(token);
+    const page = await this.pagesService.getPage(pageId);
+    return this.mapper.toPublicResponseDto(page);
   }
 }

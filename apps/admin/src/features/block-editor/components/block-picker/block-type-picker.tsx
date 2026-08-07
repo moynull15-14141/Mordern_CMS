@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { LayoutTemplate, Blocks } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,9 +33,23 @@ const FAMILY_ORDER: BlockFamily[] = ['leaf', 'media', 'rich', 'action', 'contain
 export function BlockTypePicker({
   trigger,
   onSelect,
+  onSelectPatterns,
+  onSelectReusable,
 }: {
   trigger: ReactNode;
   onSelect: (type: string) => void;
+  /** Optional — when provided, a "Patterns…" entry appears above the
+   * registry-driven groups. This is the picker's only awareness that
+   * Patterns exist at all: it doesn't fetch, render, or know anything
+   * about pattern content — the caller (`AddBlockButton`) owns the actual
+   * Pattern Picker dialog and what happens when it opens. */
+  onSelectPatterns?: () => void;
+  /** Optional — same shape as `onSelectPatterns`, for a "Reusable
+   * block…" entry that opens `ReusableBlockPickerDialog` instead of the
+   * existing "insert an empty reference, then configure it" two-step
+   * flow the registry's own `reusable-block` entry (in the Reference
+   * group below) still offers. */
+  onSelectReusable?: () => void;
 }) {
   const definitions = listBlockDefinitions();
   const byFamily = FAMILY_ORDER.map((family) => ({
@@ -46,6 +61,23 @@ export function BlockTypePicker({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="max-h-80 overflow-y-auto">
+        {onSelectPatterns || onSelectReusable ? (
+          <>
+            {onSelectPatterns ? (
+              <DropdownMenuItem onSelect={onSelectPatterns}>
+                <LayoutTemplate className="size-4" aria-hidden="true" />
+                Patterns…
+              </DropdownMenuItem>
+            ) : null}
+            {onSelectReusable ? (
+              <DropdownMenuItem onSelect={onSelectReusable}>
+                <Blocks className="size-4" aria-hidden="true" />
+                Reusable block…
+              </DropdownMenuItem>
+            ) : null}
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
         {byFamily.map((group, index) => (
           <div key={group.family}>
             {index > 0 ? <DropdownMenuSeparator /> : null}

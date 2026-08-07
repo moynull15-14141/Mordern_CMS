@@ -15,12 +15,14 @@ import { useTheme } from '../hooks/use-theme';
 import { useDeleteTheme } from '../hooks/use-delete-theme';
 import { useRestoreTheme } from '../hooks/use-restore-theme';
 import { useActivateTheme } from '../hooks/use-activate-theme';
+import { useDuplicateTheme } from '../hooks/use-duplicate-theme';
 import { StatusBadge } from './status-badge';
 import { ActiveBadge } from './active-badge';
 import { DeleteDialog } from './delete-dialog';
 import { RestoreDialog } from './restore-dialog';
 import { ActivateDialog } from './activate-dialog';
 import { ThemePreview } from './theme-preview';
+import { downloadThemeExport } from '../utils/theme-export';
 import type { ThemeSettings } from '../types/theme';
 
 function toPreviewSettings(settings: ThemeSettings | null) {
@@ -33,6 +35,7 @@ function toPreviewSettings(settings: ThemeSettings | null) {
     containerWidth: settings?.containerWidth ?? '',
     borderRadius: settings?.borderRadius ?? '',
     buttonStyle: settings?.buttonStyle ?? '',
+    designTokens: settings?.designTokens,
   };
 }
 
@@ -56,6 +59,7 @@ export function ThemeDetailPageContent({ themeId }: ThemeDetailPageContentProps)
   const deleteMutation = useDeleteTheme();
   const restoreMutation = useRestoreTheme();
   const activateMutation = useActivateTheme();
+  const duplicateMutation = useDuplicateTheme();
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
@@ -96,6 +100,20 @@ export function ThemeDetailPageContent({ themeId }: ThemeDetailPageContentProps)
               <PermissionGate permissions={PERMISSIONS.THEME_MANAGE}>
                 <Button variant="outline" onClick={() => router.push(THEME_ROUTES.edit(theme.id))}>
                   Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    duplicateMutation.mutate(theme, {
+                      onSuccess: (created) => router.push(THEME_ROUTES.detail(created.id)),
+                    })
+                  }
+                  disabled={duplicateMutation.isPending}
+                >
+                  Duplicate
+                </Button>
+                <Button variant="outline" onClick={() => downloadThemeExport(theme)}>
+                  Export
                 </Button>
                 <Button
                   variant="outline"

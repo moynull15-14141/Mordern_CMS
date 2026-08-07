@@ -151,6 +151,7 @@ export class BlockTreeValidator {
           break;
         }
         case 'reusable-block-ref':
+        case 'media-ref':
           if (typeof value !== 'string' || value.length === 0) {
             throw new InvalidBlockTreeException(`${fieldPath} must be a non-empty string id.`);
           }

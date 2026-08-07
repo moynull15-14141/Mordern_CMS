@@ -60,6 +60,15 @@ export interface SearchConfigShape {
   timeout: number;
 }
 
+export interface QueueConfigShape {
+  driver: string;
+}
+
+export interface CdnConfigShape {
+  url: string;
+  signedUrlTtlSeconds: number;
+}
+
 /**
  * Typed facade over @nestjs/config so the rest of the backend depends on
  * AppConfigService.app/.database/.auth/.cache/.storage/.ai/.search/.features
@@ -95,6 +104,14 @@ export class AppConfigService {
 
   get search(): SearchConfigShape {
     return this.config.get<SearchConfigShape>('search', { infer: true })!;
+  }
+
+  get queue(): QueueConfigShape {
+    return this.config.get<QueueConfigShape>('queue', { infer: true })!;
+  }
+
+  get cdn(): CdnConfigShape {
+    return this.config.get<CdnConfigShape>('cdn', { infer: true })!;
   }
 
   get features(): FeatureFlags {

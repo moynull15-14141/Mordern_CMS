@@ -7,6 +7,7 @@ import { findBlock } from '../../state/block-tree.util';
 import { renderField } from './fields/render-field';
 import { ResponsiveVisibilityFields } from './responsive-visibility-fields';
 import { ReusableBlockActions } from './reusable-block-actions';
+import { PatternActions } from './pattern-actions';
 
 /**
  * Generic property panel — renders whatever `BlockDefinition.fields` the
@@ -46,6 +47,9 @@ export function PropertyPanel() {
         <h3 className="text-sm font-semibold">{definition.label}</h3>
         <div className="flex flex-wrap items-center gap-2">
           <ReusableBlockActions block={selectedBlock} />
+          {selectedBlock.type !== 'reusable-block' ? (
+            <PatternActions block={selectedBlock} />
+          ) : null}
         </div>
       </div>
       {definition.fields.length === 0 ? (

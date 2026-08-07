@@ -74,12 +74,10 @@ export class MediaFolderRepository {
     return this.prisma.mediaFolder.count({ where: { parentId: folderId, deletedAt: null } });
   }
 
-  /** Counts active `MediaAsset` rows whose `metadata.folderId` points at
-   * this folder — no real FK exists (see docs/48_MEDIA_LIBRARY_ARCHITECTURE.md
-   * "Known Gaps"). */
+  /** Counts active `MediaAsset` rows whose real `folderId` FK column (Milestone 5) points at this folder. */
   async countActiveAssets(folderId: string): Promise<number> {
     return this.prisma.mediaAsset.count({
-      where: { deletedAt: null, metadata: { path: ['folderId'], equals: folderId } },
+      where: { deletedAt: null, folderId },
     });
   }
 

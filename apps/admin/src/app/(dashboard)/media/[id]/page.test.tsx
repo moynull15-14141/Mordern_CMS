@@ -37,7 +37,9 @@ function wrapper(permissions: string[]) {
     return (
       <QueryClientProvider client={queryClient}>
         <AuthContext.Provider value={authValue}>
-          <PermissionContext.Provider value={permissionValue}>{children}</PermissionContext.Provider>
+          <PermissionContext.Provider value={permissionValue}>
+            {children}
+          </PermissionContext.Provider>
         </AuthContext.Provider>
       </QueryClientProvider>
     );
@@ -60,6 +62,11 @@ const media = {
   caption: null,
   credit: null,
   uploadedBy: 'u1',
+  visibility: 'PUBLIC' as const,
+  urls: {},
+  blurPlaceholder: null,
+  dominantColor: null,
+  pinnedAt: null,
   usageCount: 0,
   usages: [],
   createdAt: '2026-01-01T00:00:00.000Z',

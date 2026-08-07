@@ -50,11 +50,14 @@ describe('EditThemePageContent', () => {
     expect(themesApi.get).toHaveBeenCalledWith('t1');
   });
 
-  it('pre-fills appearance settings from the theme', async () => {
+  it('pre-fills appearance settings from the theme (under the Site Design "Advanced" tab)', async () => {
     vi.mocked(themesApi.get).mockResolvedValue(targetTheme);
+    const user = userEvent.setup();
     render(<EditThemePageContent themeId="t1" />, { wrapper: wrapper() });
 
-    await waitFor(() => expect(screen.getByLabelText('Primary Color')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Advanced' })).toBeInTheDocument());
+    await user.click(screen.getByRole('tab', { name: 'Advanced' }));
+    expect(screen.getByLabelText('Primary Color')).toBeInTheDocument();
   });
 
   it('navigates to the detail page without a confirm dialog when Cancel is clicked and the form is clean', async () => {
@@ -101,5 +104,46 @@ describe('EditThemePageContent', () => {
       )
     );
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/themes/t1'));
+  });
+
+  // Regression test: same designTokens-dropped-on-save bug as
+  // create-theme-page-content.test.tsx, but for the Edit form — both the
+  // pre-fill (`toSettingsFormValues`) and the save payload
+  // (`toSettingsInput`) needed the fix.
+  it('pre-fills existing designTokens into the Colors tab, and keeps changes to it in the save payload', async () => {
+    vi.mocked(themesApi.get).mockResolvedValue({
+      ...targetTheme,
+      settings: {
+        primaryColor: '#112233',
+        designTokens: { colors: { brand: { primary: '#aabbcc' } } },
+      },
+    });
+    vi.mocked(themesApi.update).mockResolvedValue(targetTheme);
+    const user = userEvent.setup();
+    render(<EditThemePageContent themeId="t1" />, { wrapper: wrapper() });
+
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Colors' })).toBeInTheDocument());
+    await user.click(screen.getByRole('tab', { name: 'Colors' }));
+    await waitFor(() => expect(screen.getByLabelText('Primary')).toHaveValue('#aabbcc'));
+
+    await user.clear(screen.getByLabelText('Primary'));
+    await user.type(screen.getByLabelText('Primary'), '#ff0000');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() =>
+      expect(themesApi.update).toHaveBeenCalledWith(
+        't1',
+        expect.objectContaining({
+          settings: expect.objectContaining({
+            designTokens: expect.objectContaining({
+              colors: expect.objectContaining({
+                brand: expect.objectContaining({ primary: '#ff0000' }),
+              }),
+            }),
+          }),
+        })
+      )
+    );
   });
 });

@@ -7,7 +7,9 @@ import { cacheConfig } from './cache.config';
 import { AppConfigService } from './config.service';
 import { databaseConfig } from './database.config';
 import { validateEnv } from './env.validation';
+import { cdnConfig } from './cdn.config';
 import { featureFlagsConfig } from './feature-flags.config';
+import { queueConfig } from './queue.config';
 import { searchConfig } from './search.config';
 import { storageConfig } from './storage.config';
 
@@ -35,6 +37,8 @@ const nodeEnv = process.env.NODE_ENV ?? 'development';
         aiConfig,
         searchConfig,
         featureFlagsConfig,
+        queueConfig,
+        cdnConfig,
       ],
       validate: validateEnv,
     }),

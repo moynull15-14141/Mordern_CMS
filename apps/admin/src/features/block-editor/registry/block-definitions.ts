@@ -81,11 +81,17 @@ export const BUILT_IN_BLOCK_DEFINITIONS: BlockDefinition[] = [
     icon: Image,
     description: 'A single image with alt text and an optional caption.',
     fields: [
-      { key: 'url', label: 'Image URL', kind: 'url', required: true },
+      {
+        key: 'mediaId',
+        label: 'Image',
+        kind: 'media-ref',
+        required: true,
+        mediaTypeFilter: 'IMAGE',
+      },
       { key: 'alt', label: 'Alt text', kind: 'text', required: true },
       { key: 'caption', label: 'Caption', kind: 'text' },
     ],
-    defaultData: { url: '', alt: '' },
+    defaultData: { mediaId: '', alt: '' },
   },
   {
     type: 'gallery',
@@ -99,7 +105,13 @@ export const BUILT_IN_BLOCK_DEFINITIONS: BlockDefinition[] = [
         key: 'images',
         label: 'Images',
         ...listOf([
-          { key: 'url', label: 'Image URL', kind: 'url', required: true },
+          {
+            key: 'mediaId',
+            label: 'Image',
+            kind: 'media-ref',
+            required: true,
+            mediaTypeFilter: 'IMAGE',
+          },
           { key: 'alt', label: 'Alt text', kind: 'text', required: true },
           { key: 'caption', label: 'Caption', kind: 'text' },
         ]),
@@ -115,11 +127,17 @@ export const BUILT_IN_BLOCK_DEFINITIONS: BlockDefinition[] = [
     icon: Video,
     description: 'A self-hosted / direct-link video file.',
     fields: [
-      { key: 'url', label: 'Video URL', kind: 'url', required: true },
-      { key: 'poster', label: 'Poster image URL', kind: 'url' },
+      {
+        key: 'mediaId',
+        label: 'Video',
+        kind: 'media-ref',
+        required: true,
+        mediaTypeFilter: 'VIDEO',
+      },
+      { key: 'posterMediaId', label: 'Poster image', kind: 'media-ref', mediaTypeFilter: 'IMAGE' },
       { key: 'caption', label: 'Caption', kind: 'text' },
     ],
-    defaultData: { url: '' },
+    defaultData: { mediaId: '' },
   },
   {
     type: 'youtube',
@@ -380,7 +398,7 @@ export const BUILT_IN_BLOCK_DEFINITIONS: BlockDefinition[] = [
     icon: Download,
     description: 'A downloadable file link.',
     fields: [
-      { key: 'url', label: 'File URL', kind: 'url', required: true },
+      { key: 'mediaId', label: 'File', kind: 'media-ref', required: true },
       { key: 'filename', label: 'Display filename', kind: 'text' },
       {
         key: 'filesize',
@@ -389,7 +407,7 @@ export const BUILT_IN_BLOCK_DEFINITIONS: BlockDefinition[] = [
         placeholder: 'e.g. 2.4 MB',
       },
     ],
-    defaultData: { url: '' },
+    defaultData: { mediaId: '' },
   },
   {
     type: 'spacer',

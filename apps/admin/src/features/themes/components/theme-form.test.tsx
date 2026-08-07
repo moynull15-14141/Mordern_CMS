@@ -16,8 +16,10 @@ describe('CreateThemeForm', () => {
     expect(screen.queryByLabelText('Status')).not.toBeInTheDocument();
   });
 
-  it('renders the appearance settings fields', () => {
+  it('renders the appearance settings fields under the Site Design "Advanced" tab', async () => {
+    const user = userEvent.setup();
     render(<CreateThemeForm onSubmit={vi.fn()} isSubmitting={false} />);
+    await user.click(screen.getByRole('tab', { name: 'Advanced' }));
     expect(screen.getByLabelText('Logo URL')).toBeInTheDocument();
     expect(screen.getByLabelText('Primary Color')).toBeInTheDocument();
     expect(screen.getByLabelText('Custom CSS')).toBeInTheDocument();
@@ -56,6 +58,7 @@ describe('CreateThemeForm', () => {
     const user = userEvent.setup();
     render(<CreateThemeForm onSubmit={vi.fn()} isSubmitting={false} />);
 
+    await user.click(screen.getByRole('tab', { name: 'Advanced' }));
     await user.type(screen.getByLabelText('Header Layout'), 'Centered Nav');
 
     await waitFor(() =>

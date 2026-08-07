@@ -22,6 +22,7 @@ const baseTheme: PublicTheme = {
   },
   customCss: null,
   customJs: null,
+  designTokens: null,
 };
 
 describe('buildThemeCssVariables', () => {

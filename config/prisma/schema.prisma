@@ -99,6 +99,22 @@ enum MediaStatus {
   @@map("media_status")
 }
 
+/// Milestone 5 (Enterprise Digital Asset Platform) — asset-level read visibility, independent of MediaStatus's processing lifecycle.
+enum MediaVisibility {
+  PUBLIC
+  PRIVATE
+
+  @@map("media_visibility")
+}
+
+/// Milestone 6 (Section & Pattern Library) — Archive/Restore workflow, independent of the soft-delete (deletedAt) lifecycle. Mirrors MediaStatus's ARCHIVED-as-a-status precedent.
+enum PatternStatus {
+  ACTIVE
+  ARCHIVED
+
+  @@map("pattern_status")
+}
+
 /// Frozen V1 enum — see docs/36_DATABASE_FREEZE.md "Enum Reference" for purpose, allowed values, default, and future-expansion notes.
 enum CommentStatus {
   PENDING
@@ -318,6 +334,9 @@ model User {
   auditLogs          AuditLog[]
   activityLogs       ActivityLog[]
   analyticsEvents    AnalyticsEvent[]
+  mediaFavorites     MediaFavorite[]
+  mediaRecentViews   MediaRecentView[]
+  patternFavorites   PatternFavorite[]
 
   @@index([siteId, email])
   @@index([siteId])
@@ -580,6 +599,7 @@ model Site {
   layouts           Layout[]
   layoutAssignments LayoutAssignment[]
   reusableBlocks    ReusableBlock[]
+  patterns          Pattern[]
 
   @@index([tenantId, slug])
   @@index([domain])
@@ -775,21 +795,33 @@ model ArticleMedia {
 // =====================================================================
 
 model MediaAsset {
-  id         String      @id @default(uuid()) @db.Uuid
-  siteId     String      @map("site_id") @db.Uuid
-  uploadedBy String      @map("uploaded_by") @db.Uuid
-  type       MediaType
-  storageKey String      @map("storage_key")
-  mimeType   String      @map("mime_type")
-  filesize   BigInt
-  width      Int?
-  height     Int?
-  duration   Int?
-  altText    String?     @map("alt_text")
-  caption    String?
-  credit     String?
-  metadata   Json?
-  status     MediaStatus @default(PROCESSING)
+  id              String          @id @default(uuid()) @db.Uuid
+  siteId          String          @map("site_id") @db.Uuid
+  uploadedBy      String          @map("uploaded_by") @db.Uuid
+  folderId        String?         @map("folder_id") @db.Uuid
+  type            MediaType
+  storageKey      String          @map("storage_key")
+  mimeType        String          @map("mime_type")
+  filesize        BigInt
+  width           Int?
+  height          Int?
+  duration        Int?
+  altText         String?         @map("alt_text")
+  caption         String?
+  credit          String?
+  metadata        Json?
+  status          MediaStatus     @default(PROCESSING)
+  visibility      MediaVisibility @default(PUBLIC)
+  /// Per-variant storage keys/dimensions, e.g. `{ thumbnail: {...}, small: {...}, webp: {...}, avif: {...} }` — Json?, matches this schema's existing metadata Json?/Setting.value Json "flexible co-read/co-written data" convention (see docs/36_DATABASE_FREEZE.md).
+  variants        Json?
+  /// Tiny blurred base64 data-URI, inlined (never a separate storage object).
+  blurPlaceholder String?         @map("blur_placeholder")
+  /// Hex color, e.g. "#a1b2c3".
+  dominantColor   String?         @map("dominant_color")
+  /// Curated EXIF tag subset only — GPS fields are deliberately never persisted (privacy).
+  exif            Json?
+  /// Global/site-wide pin (distinct from per-user MediaFavorite).
+  pinnedAt        DateTime?       @map("pinned_at") @db.Timestamptz(6)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   createdBy String?   @map("created_by") @db.Uuid
@@ -798,17 +830,22 @@ model MediaAsset {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
   deletedBy String?   @map("deleted_by") @db.Uuid
 
-  site     Site @relation(fields: [siteId], references: [id], onDelete: Restrict)
-  uploader User @relation("MediaUploadedBy", fields: [uploadedBy], references: [id], onDelete: Restrict)
+  site     Site         @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  uploader User         @relation("MediaUploadedBy", fields: [uploadedBy], references: [id], onDelete: Restrict)
+  folder   MediaFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
 
-  profileOfUsers     User[]         @relation("UserProfileImage")
-  profileOfAuthors   Author[]       @relation("AuthorProfileImage")
-  featuredInArticles Article[]      @relation("ArticleFeaturedMedia")
+  profileOfUsers     User[]            @relation("UserProfileImage")
+  profileOfAuthors   Author[]          @relation("AuthorProfileImage")
+  featuredInArticles Article[]         @relation("ArticleFeaturedMedia")
   articleLinks       ArticleMedia[]
+  favoritedBy        MediaFavorite[]
+  recentViews        MediaRecentView[]
+  patternThumbnailOf Pattern[]         @relation("PatternThumbnail")
 
   @@index([siteId, storageKey])
   @@index([siteId])
   @@index([uploadedBy])
+  @@index([folderId])
   @@map("media_assets")
 }
 
@@ -829,10 +866,43 @@ model MediaFolder {
   site     Site          @relation(fields: [siteId], references: [id], onDelete: Restrict)
   parent   MediaFolder?  @relation("MediaFolderHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
   children MediaFolder[] @relation("MediaFolderHierarchy")
+  assets   MediaAsset[]
 
   @@index([siteId, slug])
   @@index([parentId])
   @@map("media_folders")
+}
+
+/// Per-user bookmark (distinct from MediaAsset.pinnedAt's site-wide pin). First place in this schema
+/// with a real hard-delete downstream (media-bulk permanent-delete) — onDelete: Cascade is deliberate
+/// so a favorite row never becomes an orphan.
+model MediaFavorite {
+  userId       String   @map("user_id") @db.Uuid
+  mediaAssetId String   @map("media_asset_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaAsset MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@id([userId, mediaAssetId])
+  @@index([mediaAssetId])
+  @@map("media_favorites")
+}
+
+/// Bounded upsert-on-view log (not an unbounded audit trail — AuditLog/ActivityLog exist but are
+/// never written to anywhere in this codebase today, so deriving Recent from them is out of scope).
+model MediaRecentView {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  mediaAssetId String   @map("media_asset_id") @db.Uuid
+  viewedAt     DateTime @default(now()) @map("viewed_at") @db.Timestamptz(6)
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaAsset MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mediaAssetId])
+  @@index([mediaAssetId])
+  @@map("media_recent_views")
 }
 
 // =====================================================================
@@ -1502,4 +1572,61 @@ model ReusableBlock {
 
   @@index([siteId])
   @@map("reusable_blocks")
+}
+
+/// Milestone 6 (Section & Pattern Library) — a reusable, multi-block composition
+/// ("Hero", "Pricing", "FAQ", etc. — categories, not special-cased rendering).
+/// Built entirely on the existing Block Engine: `body` is `{ blocks: BlockNode[] }`,
+/// the identical shape `Page.body`/`Article.body` already use (validated by the
+/// existing `BlockTreeValidator`, sanitized by the existing `BlockTreeSanitizer`)
+/// — NOT `ReusableBlock`'s single-node `{blockType, data, children}` shape, since a
+/// Pattern is a whole section (potentially several sibling blocks), not one block.
+/// Insertion is always a detached copy (fresh ids, no live link back to this row) —
+/// see docs comment on `insertClonedNodes` in the admin Block Editor for the other
+/// half of that decision. `status` (Archive/Restore) is independent of `deletedAt`
+/// (Delete/Restore-from-trash), mirroring `MediaStatus.ARCHIVED`'s precedent.
+model Pattern {
+  id               String        @id @default(uuid()) @db.Uuid
+  siteId           String        @map("site_id") @db.Uuid
+  name             String
+  slug             String
+  description      String?
+  category         String?
+  tags             String[]      @default([])
+  status           PatternStatus @default(ACTIVE)
+  thumbnailMediaId String?       @map("thumbnail_media_id") @db.Uuid
+  body             Json
+  version          Int           @default(1)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy String?   @map("created_by") @db.Uuid
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy String?   @map("updated_by") @db.Uuid
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+
+  site           Site              @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  thumbnailMedia MediaAsset?       @relation("PatternThumbnail", fields: [thumbnailMediaId], references: [id], onDelete: SetNull)
+  favoritedBy    PatternFavorite[]
+
+  @@index([siteId, slug])
+  @@index([category])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("patterns")
+}
+
+/// Per-user bookmark, identical shape to `MediaFavorite` (Milestone 5) applied to
+/// a new entity — not a duplicate mechanism, the same established pattern reused.
+model PatternFavorite {
+  userId    String   @map("user_id") @db.Uuid
+  patternId String   @map("pattern_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pattern Pattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+
+  @@id([userId, patternId])
+  @@index([patternId])
+  @@map("pattern_favorites")
 }

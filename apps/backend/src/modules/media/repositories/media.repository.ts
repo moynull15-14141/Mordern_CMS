@@ -13,9 +13,11 @@ const SORT_FIELD_MAP: Record<MediaSortField, string> = {
 };
 
 /**
- * Full CRUD for `MediaAsset` — no schema change. `folderId` filtering reads
- * the JSON `metadata.folderId` path (no real FK column exists — see
- * docs/48_MEDIA_LIBRARY_ARCHITECTURE.md "Known Gaps").
+ * Full CRUD for `MediaAsset`. `folderId` filtering reads the real
+ * `MediaAsset.folderId` FK column (Milestone 5) — the legacy
+ * `metadata.folderId` JSON hack documented in
+ * docs/48_MEDIA_LIBRARY_ARCHITECTURE.md is now read-only/inert, backfilled
+ * into the real column by that milestone's migration.
  */
 @Injectable()
 export class MediaRepository {
@@ -73,7 +75,7 @@ export class MediaRepository {
       ];
     }
     if (filters.folderId !== undefined && filters.folderId !== null) {
-      where.metadata = { path: ['folderId'], equals: filters.folderId };
+      where.folderId = filters.folderId;
     }
     if (filters.createdFrom || filters.createdTo) {
       where.createdAt = {
@@ -109,6 +111,14 @@ export class MediaRepository {
     return { items, total };
   }
 
+  /** Global/site-wide pinned assets (`MediaAsset.pinnedAt`) — distinct from per-user `MediaFavorite`. */
+  async findPinned(siteId: string): Promise<MediaAsset[]> {
+    return this.prisma.mediaAsset.findMany({
+      where: { siteId, deletedAt: null, pinnedAt: { not: null } },
+      orderBy: { pinnedAt: 'desc' },
+    });
+  }
+
   /** Heuristic duplicate detection — no content-hash column exists (see
    * docs/48_MEDIA_LIBRARY_ARCHITECTURE.md "Known Gaps"): matches on
    * (mimeType, filesize) among active rows, excluding the asset itself. */
@@ -142,6 +152,14 @@ export class MediaRepository {
       where: { id },
       data: { deletedAt: null, deletedBy: null, updatedBy: actorId },
     });
+  }
+
+  /** The first real hard-delete in this codebase (Milestone 5,
+   * `MediaBulkService.permanentDelete`) — every prior "delete" everywhere
+   * else is a soft-delete. `MediaFavorite`/`MediaRecentView` use
+   * `onDelete: Cascade` specifically because of this method. */
+  async hardDelete(id: string): Promise<void> {
+    await this.prisma.mediaAsset.delete({ where: { id } });
   }
 
   // --- Usage / reference detection ---
@@ -247,6 +265,52 @@ export class MediaRepository {
       select: { articleId: true, mediaAssetId: true, article: { select: { title: true } } },
     });
     return this.groupByAssetId(rows, (row) => row.mediaAssetId);
+  }
+
+  // --- Body-scan usage detection (Milestone 5, media-ref block field) ---
+
+  /** For `media-ref` usage scanning — Page/Article/ReusableBlock have no
+   * relational FK for block-tree media references, so the caller walks
+   * `body.blocks` itself (`collectMediaReferenceIds`). Queried directly
+   * (bypassing `PagesModule`/`ArticlesModule`/`ContentBlocksModule`) to
+   * avoid a circular module dependency — mirrors
+   * `reusable-block.repository.ts`'s `findActivePageBodies`/
+   * `findActiveArticleBodies` for the identical reason. */
+  async findActivePageBodies(
+    siteId: string
+  ): Promise<{ id: string; title: string; slug: string; body: Prisma.JsonValue }[]> {
+    return this.prisma.page.findMany({
+      where: { siteId, deletedAt: null },
+      select: { id: true, title: true, slug: true, body: true },
+    });
+  }
+
+  async findActiveArticleBodies(
+    siteId: string
+  ): Promise<{ id: string; title: string; slug: string; body: Prisma.JsonValue }[]> {
+    return this.prisma.article.findMany({
+      where: { siteId, deletedAt: null },
+      select: { id: true, title: true, slug: true, body: true },
+    });
+  }
+
+  /** `ReusableBlock` stores one `{blockType, data, children}` node, not a
+   * `{blocks: BlockNode[]}` tree like Page/Article — selected as its raw
+   * parts so the caller can assemble a single synthetic `BlockNode` for
+   * the same `collectMediaReferenceIds` walk. */
+  async findActiveReusableBlockBodies(siteId: string): Promise<
+    {
+      id: string;
+      name: string;
+      blockType: string;
+      data: Prisma.JsonValue;
+      children: Prisma.JsonValue;
+    }[]
+  > {
+    return this.prisma.reusableBlock.findMany({
+      where: { siteId, deletedAt: null },
+      select: { id: true, name: true, blockType: true, data: true, children: true },
+    });
   }
 
   private groupByAssetId<T extends { [key: string]: unknown }>(

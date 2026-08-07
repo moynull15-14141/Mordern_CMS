@@ -24,6 +24,7 @@ function buildTheme(overrides: Partial<PublicTheme['layout']> = {}): PublicTheme
     },
     customCss: null,
     customJs: null,
+    designTokens: null,
   };
 }
 

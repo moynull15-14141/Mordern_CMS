@@ -10,6 +10,7 @@ import { SelectField } from './select-field';
 import { ColorField } from './color-field';
 import { ListField } from './list-field';
 import { ReusableBlockRefField } from './reusable-block-ref-field';
+import { MediaRefField } from './media-ref-field';
 
 /** `BlockFieldKind -> field component` — the generic property panel's
  * entire dispatch mechanism, mirroring `BLOCK_REGISTRY`'s "registry, not
@@ -40,6 +41,7 @@ const FIELD_REGISTRY: Partial<Record<BlockFieldKind, ComponentType<FieldProps>>>
   select: SelectField,
   color: ColorField,
   'reusable-block-ref': ReusableBlockRefField,
+  'media-ref': MediaRefField,
 };
 
 export function getFieldComponent(kind: BlockFieldKind): ComponentType<FieldProps> | undefined {

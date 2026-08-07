@@ -21,6 +21,7 @@ export { useUpdatePage } from './hooks/use-update-page';
 export { useDeletePage } from './hooks/use-delete-page';
 export { useRestorePage } from './hooks/use-restore-page';
 export { usePublishPage } from './hooks/use-publish-page';
+export { useCreatePagePreviewToken } from './hooks/use-page-preview-token';
 
 export type {
   Page,

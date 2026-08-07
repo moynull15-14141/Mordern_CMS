@@ -56,7 +56,7 @@ describe('MediaRepository', () => {
     });
   });
 
-  it('findMany filters by folderId via the metadata JSON path', async () => {
+  it('findMany filters by the real folderId FK column', async () => {
     const prisma = buildPrismaMock();
     const repository = new MediaRepository(prisma);
     await repository.findMany('site-1', {
@@ -68,7 +68,7 @@ describe('MediaRepository', () => {
     });
     expect(prisma.mediaAsset.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ metadata: { path: ['folderId'], equals: 'folder-1' } }),
+        where: expect.objectContaining({ folderId: 'folder-1' }),
       })
     );
   });

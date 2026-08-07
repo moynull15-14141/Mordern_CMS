@@ -1,3 +1,5 @@
+import type { DesignTokens } from './design-tokens';
+
 /** Mirrors the real backend `ThemeStatus` enum exactly
  * (`apps/backend/src/modules/themes`). */
 export type ThemeStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
@@ -21,6 +23,9 @@ export interface ThemeSettings {
   blogLayout?: string;
   customCss?: string;
   customJs?: string;
+  /** Milestone 8 — the Site Design Token model, edited via the Site
+   * Design tabbed editor rather than raw JSON. */
+  designTokens?: DesignTokens;
 }
 
 export interface Theme {

@@ -62,4 +62,11 @@ export const mediaApi = {
   restore(id: string): Promise<Media> {
     return api.post<Media>(API_ENDPOINTS.MEDIA.restore(id));
   },
+
+  /** `GET /media/:id/signed-url` (Milestone 5) — on-demand resolution for
+   * a PRIVATE asset whose `urls.original` was omitted from a list
+   * response (avoid signing 20–50 URLs per page load). */
+  getSignedUrl(id: string): Promise<{ url: string }> {
+    return api.get<{ url: string }>(API_ENDPOINTS.MEDIA.signedUrl(id));
+  },
 };

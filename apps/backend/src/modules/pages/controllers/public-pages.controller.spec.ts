@@ -4,6 +4,7 @@ import { PublicPagesController } from './public-pages.controller';
 function buildController() {
   const publicPagesService = {
     getPageBySlug: jest.fn().mockResolvedValue({}),
+    getPageForPreview: jest.fn().mockResolvedValue({}),
   } as unknown as PublicPagesService;
   const controller = new PublicPagesController(publicPagesService);
   return { controller, publicPagesService };
@@ -14,5 +15,11 @@ describe('PublicPagesController', () => {
     const { controller, publicPagesService } = buildController();
     await controller.getPageBySlug('about-us');
     expect(publicPagesService.getPageBySlug).toHaveBeenCalledWith('about-us');
+  });
+
+  it('getPageForPreview delegates to PublicPagesService with the token param', async () => {
+    const { controller, publicPagesService } = buildController();
+    await controller.getPageForPreview('a-token');
+    expect(publicPagesService.getPageForPreview).toHaveBeenCalledWith('a-token');
   });
 });

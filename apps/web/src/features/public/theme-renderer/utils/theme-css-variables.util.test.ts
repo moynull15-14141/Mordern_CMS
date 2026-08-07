@@ -23,6 +23,7 @@ function buildTheme(overrides: Partial<PublicTheme> = {}): PublicTheme {
     },
     customCss: null,
     customJs: null,
+    designTokens: null,
     ...overrides,
   };
 }

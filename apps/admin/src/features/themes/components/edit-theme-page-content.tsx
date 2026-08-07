@@ -31,6 +31,11 @@ function toSettingsFormValues(settings: ThemeSettings | null): ThemeSettingsForm
     blogLayout: settings?.blogLayout ?? '',
     customCss: settings?.customCss ?? '',
     customJs: settings?.customJs ?? '',
+    // Milestone 8 — without this, opening Edit on a theme that already
+    // has Site Design tokens would show every Colors/Typography/Buttons/…
+    // tab empty, since none of it was being copied into the form's
+    // defaultValues.
+    designTokens: settings?.designTokens,
   };
 }
 
@@ -74,6 +79,8 @@ function toSettingsInput(settings: ThemeSettingsFormValues | undefined): ThemeSe
     blogLayout: settings.blogLayout || undefined,
     customCss: settings.customCss || undefined,
     customJs: settings.customJs || undefined,
+    // Milestone 8 — see the identical comment in create-theme-page-content.tsx.
+    designTokens: settings.designTokens,
   };
 
   const hasAnyValue = Object.values(result).some((value) => value !== undefined);

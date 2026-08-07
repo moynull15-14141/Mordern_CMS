@@ -64,4 +64,11 @@ describe('pagesApi', () => {
   it('does not expose a schedule function (no /pages/:id/schedule endpoint exists)', () => {
     expect(pagesApi).not.toHaveProperty('schedule');
   });
+
+  it('createPreviewToken() calls api.post with /pages/:id/preview-token', async () => {
+    vi.mocked(api.post).mockResolvedValue({ token: 'signed-token' });
+    const result = await pagesApi.createPreviewToken('p1');
+    expect(api.post).toHaveBeenCalledWith('/pages/p1/preview-token');
+    expect(result).toEqual({ token: 'signed-token' });
+  });
 });

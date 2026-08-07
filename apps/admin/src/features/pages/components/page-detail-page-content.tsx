@@ -76,6 +76,9 @@ export function PageDetailPageContent({ pageId }: PageDetailPageContentProps) {
               </PermissionGate>
             ) : (
               <PermissionGate permissions={PERMISSIONS.PAGE_MANAGE}>
+                <Button onClick={() => router.push(PAGE_ROUTES.builder(page.id))}>
+                  Open Builder
+                </Button>
                 <Button variant="outline" onClick={() => router.push(PAGE_ROUTES.edit(page.id))}>
                   Edit
                 </Button>

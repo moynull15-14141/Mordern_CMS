@@ -1,3 +1,5 @@
+import type { DesignTokens } from './design-tokens.types';
+
 /**
  * Mirrors `PublicThemeResponseDto`
  * (`apps/backend/src/modules/themes/dto/public-theme-response.dto.ts`)
@@ -32,4 +34,8 @@ export interface PublicTheme {
   layout: PublicThemeLayout;
   customCss: string | null;
   customJs: string | null;
+  /** Milestone 8 — the Site Design Token model. `null` for a pre-M8
+   * theme; every consumer treats that as "use the legacy flat fields /
+   * static `globals.css` defaults above." */
+  designTokens: DesignTokens | null;
 }

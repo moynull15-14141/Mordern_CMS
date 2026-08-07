@@ -12,6 +12,8 @@
     "test:cov": "jest --coverage"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3",
+    "@aws-sdk/s3-request-presigner": "^3",
     "@fastify/compress": "^8",
     "@fastify/cors": "^10",
     "@fastify/helmet": "^13",
@@ -26,9 +28,13 @@
     "@nestjs/throttler": "^6",
     "@prisma/client": "^6",
     "bcrypt": "^5",
+    "bullmq": "^5",
     "class-transformer": "^0.5",
     "class-validator": "^0.14",
+    "exifr": "^7",
     "fastify": "^5",
+    "file-type": "^19",
+    "ioredis": "^5",
     "nestjs-pino": "^4",
     "passport": "^0.7",
     "passport-jwt": "^4",
@@ -36,7 +42,8 @@
     "pino-http": "^10",
     "reflect-metadata": "^0.2",
     "rxjs": "^7",
-    "sanitize-html": "2.17.0"
+    "sanitize-html": "2.17.0",
+    "sharp": "^0.33"
   },
   "devDependencies": {
     "@nestjs/cli": "^11",

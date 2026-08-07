@@ -24,6 +24,7 @@ const baseTheme: PublicTheme = {
   },
   customCss: null,
   customJs: null,
+  designTokens: null,
 };
 
 const pageContent: ResolvedPublicContent = {

@@ -67,6 +67,12 @@ export interface BlockNodeMeta {
   panelId?: number;
   tabId?: number;
   responsive?: BlockNodeResponsiveMeta;
+  /** Stamped client-side on a Pattern's root block(s) at insertion time
+   * (Milestone 6) — a soft "inserted from" marker, never a live link.
+   * `BlockTreeValidator` on the backend tolerates unknown `meta` keys, so
+   * this needs no schema/migration; it naturally disappears if a user
+   * edits/removes the inherited blocks, which is the point. */
+  patternOrigin?: { patternId: string };
 }
 
 export interface BlockNode {

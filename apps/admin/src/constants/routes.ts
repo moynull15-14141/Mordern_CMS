@@ -17,6 +17,7 @@ export const ROUTES = {
   SEO: '/seo',
   PAGES: '/pages',
   REUSABLE_BLOCKS: '/reusable-blocks',
+  PATTERNS: '/patterns',
   THEMES: '/themes',
   LAYOUTS: '/layouts',
   USERS: '/users',
@@ -90,6 +91,7 @@ export const PAGE_ROUTES = {
   new: () => `${ROUTES.PAGES}/new`,
   detail: (id: string) => `${ROUTES.PAGES}/${id}`,
   edit: (id: string) => `${ROUTES.PAGES}/${id}/edit`,
+  builder: (id: string) => `${ROUTES.PAGES}/${id}/builder`,
 };
 
 /** Milestone 4 (Reusable Blocks Management) — id-scoped path builders,
@@ -104,6 +106,12 @@ export const REUSABLE_BLOCK_ROUTES = {
 /** Frontend Milestone 12 — id-scoped path builders, additive to `ROUTES`.
  * No `/themes/:id/preview` — "Preview" is served by the Detail page itself
  * (`GET /themes/:id`), no separate backend endpoint exists. */
+export const PATTERN_ROUTES = {
+  new: () => `${ROUTES.PATTERNS}/new`,
+  detail: (id: string) => `${ROUTES.PATTERNS}/${id}`,
+  edit: (id: string) => `${ROUTES.PATTERNS}/${id}/edit`,
+};
+
 export const THEME_ROUTES = {
   new: () => `${ROUTES.THEMES}/new`,
   detail: (id: string) => `${ROUTES.THEMES}/${id}`,

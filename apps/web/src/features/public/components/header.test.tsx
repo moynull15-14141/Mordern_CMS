@@ -42,6 +42,7 @@ describe('Header', () => {
           },
           customCss: null,
           customJs: null,
+          designTokens: null,
         }}
         settings={null}
       />

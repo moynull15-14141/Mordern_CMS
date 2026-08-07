@@ -39,6 +39,11 @@ function toSettingsInput(settings: ThemeSettingsFormValues | undefined): ThemeSe
     blogLayout: settings.blogLayout || undefined,
     customCss: settings.customCss || undefined,
     customJs: settings.customJs || undefined,
+    // Milestone 8 — without this, everything entered in the Site Design
+    // tabs (Colors/Typography/Buttons/Cards/Forms/Layout/Header/Footer)
+    // would be silently dropped on save, since this function otherwise
+    // only rebuilds the legacy flat fields.
+    designTokens: settings.designTokens,
   };
 
   const hasAnyValue = Object.values(result).some((value) => value !== undefined);

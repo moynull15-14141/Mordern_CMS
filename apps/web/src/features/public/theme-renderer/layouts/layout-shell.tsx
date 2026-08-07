@@ -18,6 +18,22 @@ import { buildExtendedThemeCssVariables } from '../utils/theme-css-variables.uti
  * already applies one level up — see `theme-css-variables.util.ts`'s doc
  * comment) once here, so every Theme* component underneath any preset can
  * read them without recomputing anything.
+ *
+ * Also paints `background` explicitly on this same element (Milestone 8
+ * bugfix). `globals.css`'s `body { background: var(--sportingspy-page-background,
+ * var(--sportingspy-color-background)) }` rule can only ever see the
+ * *static* `:root` default for that variable — a CSS custom property
+ * declared on this `<div>` (via the `style` object below) is scoped to
+ * this element and its descendants, never visible on `<body>`, an
+ * *ancestor* of this div. Before Milestone 8 that was invisible (the
+ * variable had no dynamic value to lose either way); now that Design
+ * Tokens give it a real per-theme value, `<body>` silently kept showing
+ * the static default while everything *inside* this shell (header,
+ * footer, content) correctly updated — exactly the "navbar changed, page
+ * behind it didn't" bug. Painting it here, where the variable is
+ * actually in scope, fixes it without touching the `<body>` rule (which
+ * stays as a harmless min-flash-of-unstyled-background fallback for the
+ * sliver of viewport this `min-h-screen` div doesn't always cover).
  */
 export function ThemeLayoutShell({
   slots,
@@ -33,7 +49,12 @@ export function ThemeLayoutShell({
   return (
     <div
       className="flex min-h-screen flex-col"
-      style={cssVariables as CSSProperties}
+      style={
+        {
+          ...cssVariables,
+          background: 'var(--sportingspy-page-background, var(--sportingspy-color-background))',
+        } as CSSProperties
+      }
       data-testid="theme-layout-shell"
     >
       <Slot name="header">{slots.header}</Slot>

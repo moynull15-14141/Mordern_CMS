@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { ContentBlocksModule } from '../content-blocks/content-blocks.module';
+import { IdentityModule } from '../identity/identity.module';
 import { PagesController } from './controllers/pages.controller';
 import { PublicPagesController } from './controllers/public-pages.controller';
 import { PagesRepository } from './repositories/pages.repository';
@@ -9,6 +10,7 @@ import { PagesMapper } from './mappers/pages.mapper';
 import { PublicPagesMapper } from './mappers/public-pages.mapper';
 import { PagesService } from './services/pages.service';
 import { PublicPagesService } from './services/public-pages.service';
+import { PagePreviewService } from './services/page-preview.service';
 
 /**
  * Pages Foundation. Depends on AuthorizationModule for `PermissionGuard`
@@ -23,7 +25,7 @@ import { PublicPagesService } from './services/public-pages.service';
  * block-tree shape before every create/update.
  */
 @Module({
-  imports: [AuthorizationModule, ContentBlocksModule],
+  imports: [AuthorizationModule, ContentBlocksModule, IdentityModule],
   controllers: [PagesController, PublicPagesController],
   providers: [
     PagesRepository,
@@ -32,6 +34,7 @@ import { PublicPagesService } from './services/public-pages.service';
     PagesService,
     PublicPagesMapper,
     PublicPagesService,
+    PagePreviewService,
   ],
   exports: [PagesService, PublicPagesService],
 })

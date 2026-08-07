@@ -40,8 +40,46 @@
   --sportingspy-spacing-md: 1rem;
   --sportingspy-spacing-lg: 1.5rem;
   --sportingspy-spacing-xl: 2.5rem;
+  --sportingspy-spacing-xxl: 3.5rem;
+  --sportingspy-spacing-xxxl: 5rem;
+  --sportingspy-spacing-xxxxl: 7rem;
 
   --sportingspy-font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /**
+   * Milestone 8 (Advanced Site Design System) — fallback defaults for the
+   * component-level tokens `design-tokens-css-variables.util.ts` emits
+   * when a theme actually sets them. A pre-M8 theme (or a M8 theme that
+   * leaves a group unset) renders with these exact static values, same
+   * "fallback, never a required field" contract every variable in this
+   * file already follows.
+   */
+  --sportingspy-button-height: 2.5rem;
+  --sportingspy-button-padding-x: 1.25rem;
+  --sportingspy-button-shadow: none;
+
+  --sportingspy-card-background: var(--sportingspy-color-surface);
+  --sportingspy-card-border: var(--sportingspy-color-border);
+  --sportingspy-card-radius: var(--sportingspy-radius);
+  --sportingspy-card-shadow: none;
+  --sportingspy-card-padding: 1.5rem;
+
+  --sportingspy-form-input-height: 2.5rem;
+  --sportingspy-form-input-radius: 0.375rem;
+  --sportingspy-form-input-border: var(--sportingspy-color-border);
+  --sportingspy-form-input-background: var(--sportingspy-color-background);
+  --sportingspy-form-label-color: var(--sportingspy-color-text);
+  --sportingspy-form-focus-color: var(--sportingspy-color-primary);
+  --sportingspy-form-error-color: #dc2626;
+  --sportingspy-form-helper-color: var(--sportingspy-color-muted);
+
+  --sportingspy-container-padding-x: 1.5rem;
+  --sportingspy-section-spacing: 4rem;
+
+  --sportingspy-header-background: var(--sportingspy-color-surface);
+  --sportingspy-header-text: var(--sportingspy-color-text);
+  --sportingspy-footer-background: var(--sportingspy-color-surface);
+  --sportingspy-footer-text: var(--sportingspy-color-text);
 }
 
 /**
@@ -65,7 +103,8 @@
 
 body {
   color: var(--sportingspy-color-text);
-  background-color: var(--sportingspy-color-background);
+  background: var(--sportingspy-page-background, var(--sportingspy-color-background));
+  font-family: var(--sportingspy-font-family);
 }
 
 :focus-visible {

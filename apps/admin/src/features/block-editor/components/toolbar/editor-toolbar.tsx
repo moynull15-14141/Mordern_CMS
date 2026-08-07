@@ -10,7 +10,7 @@ import {
   useHasClipboardEntry,
   useSelectedId,
 } from '../../context/use-block-editor';
-import { BlockTypePicker } from '../block-picker/block-type-picker';
+import { AddBlockButton } from '../block-picker/add-block-button';
 
 /**
  * Generic toolbar — every action reads only from the editor context
@@ -27,15 +27,8 @@ export function EditorToolbar() {
   const canUndo = useCanUndo();
   const canRedo = useCanRedo();
   const hasClipboardEntry = useHasClipboardEntry();
-  const {
-    undo,
-    redo,
-    insertBlock,
-    copyBlockById,
-    pasteClipboard,
-    duplicateBlockById,
-    removeBlockById,
-  } = useEditorActions();
+  const { undo, redo, copyBlockById, pasteClipboard, duplicateBlockById, removeBlockById } =
+    useEditorActions();
 
   return (
     <div
@@ -43,14 +36,15 @@ export function EditorToolbar() {
       role="toolbar"
       aria-label="Block editor toolbar"
     >
-      <BlockTypePicker
+      <AddBlockButton
         trigger={
           <Button type="button" variant="outline" size="sm">
             <Plus className="size-4" />
             Add block
           </Button>
         }
-        onSelect={(type) => insertBlock(type, null, blocks.length)}
+        parentId={null}
+        index={blocks.length}
       />
 
       <div className="mx-1 h-5 w-px bg-border" role="separator" aria-orientation="vertical" />

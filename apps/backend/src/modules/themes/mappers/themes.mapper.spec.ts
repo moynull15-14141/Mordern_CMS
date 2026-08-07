@@ -29,6 +29,7 @@ function buildTheme(overrides: Partial<Theme> = {}): Theme {
       blogLayout: 'list',
       customCss: 'body { color: red; }',
       customJs: 'console.log("hi")',
+      designTokens: { version: 1, colors: { brand: { primary: '#111827' } } },
     },
     createdAt: new Date('2026-01-01'),
     createdBy: null,
@@ -144,6 +145,19 @@ describe('ThemesMapper', () => {
       expect(dto.colors).toEqual({ primary: null, secondary: null });
       expect(dto.layout.header).toBeNull();
       expect(dto.customCss).toBeNull();
+      expect(dto.designTokens).toBeNull();
+    });
+
+    it('passes designTokens through as-is (Milestone 8)', () => {
+      const mapper = new ThemesMapper();
+      const dto = mapper.toPublicResponseDto(buildTheme());
+      expect(dto.designTokens).toEqual({ version: 1, colors: { brand: { primary: '#111827' } } });
+    });
+
+    it('returns designTokens=null for a pre-M8 theme with settings but no designTokens', () => {
+      const mapper = new ThemesMapper();
+      const dto = mapper.toPublicResponseDto(buildTheme({ settings: { primaryColor: '#112233' } }));
+      expect(dto.designTokens).toBeNull();
     });
   });
 });

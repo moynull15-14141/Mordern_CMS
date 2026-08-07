@@ -9,11 +9,12 @@ import {
   findBlock,
   findParentId,
   insertBlock,
+  insertBlocks,
   moveBlock,
   removeBlock,
   updateBlock,
 } from './block-tree.util';
-import { generateId } from '../utils/clone-with-fresh-ids';
+import { cloneWithFreshIds, generateId } from '../utils/clone-with-fresh-ids';
 
 export interface EditorStoreState {
   history: HistoryState;
@@ -29,6 +30,12 @@ export interface EditorStoreState {
   hydrate: (blocks: BlockNode[]) => void;
 
   insertBlock: (type: string, parentId: string | null, index: number) => string;
+  /** Inserts an already-built subtree list (e.g. a Pattern's `body.blocks`)
+   * as one group — every node (root and nested) gets a fresh id via
+   * `cloneWithFreshIds` first, so an inserted Pattern is a fully detached
+   * copy from the moment it lands, never a live reference back to
+   * whatever produced `nodes`. Returns the fresh root ids in order. */
+  insertClonedNodes: (nodes: BlockNode[], parentId: string | null, index: number) => string[];
   updateBlockData: (id: string, data: Record<string, unknown>) => void;
   updateBlockMeta: (id: string, meta: BlockNodeMeta) => void;
   /** Replaces one block (wherever it is in the tree, including nested
@@ -98,6 +105,16 @@ export function createEditorStore(initialBlocks: BlockNode[]) {
         selectedId: node.id,
       });
       return node.id;
+    },
+
+    insertClonedNodes: (nodes, parentId, index) => {
+      const cloned = nodes.map(cloneWithFreshIds);
+      const { history } = get();
+      set({
+        history: pushHistory(history, insertBlocks(history.present, cloned, parentId, index)),
+        selectedId: cloned.length > 0 ? cloned[cloned.length - 1].id : get().selectedId,
+      });
+      return cloned.map((node) => node.id);
     },
 
     updateBlockData: (id, data) => {

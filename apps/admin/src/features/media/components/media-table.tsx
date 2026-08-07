@@ -34,12 +34,17 @@ export interface MediaTableProps {
   onView: (media: Media) => void;
   onDelete: (media: Media) => void;
   onRestore: (media: Media) => void;
+  /** Bulk-select (Milestone 5) — omit both to keep the table selection-free. */
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 /** Media List — List View. Built on the shared `DataTable` (server
  * pagination/search/sort/filter, matching `MediaQueryDto` exactly). No
- * bulk selection — no bulk endpoint exists. No Edit row action — metadata
- * editing happens inline on the Detail page (no separate edit route). */
+ * Edit row action — metadata editing happens inline on the Detail page
+ * (no separate edit route). Real bulk selection (Milestone 5) — a
+ * `select` column is prepended when `onToggleSelect` is provided,
+ * backed by the real `MediaBulkController` endpoints. */
 export function MediaTable({
   data,
   isLoading,
@@ -56,15 +61,45 @@ export function MediaTable({
   onView,
   onDelete,
   onRestore,
+  selectedIds,
+  onToggleSelect,
 }: MediaTableProps) {
+  const selectColumn: ColumnDef<Media, unknown>[] = onToggleSelect
+    ? [
+        {
+          id: 'select',
+          header: () => <span className="sr-only">Select</span>,
+          enableSorting: false,
+          enableHiding: false,
+          cell: ({ row }) => (
+            <input
+              type="checkbox"
+              checked={selectedIds?.has(row.original.id) ?? false}
+              onChange={() => onToggleSelect(row.original.id)}
+              aria-label={`Select ${row.original.filename}`}
+              className="size-4"
+            />
+          ),
+        },
+      ]
+    : [];
+
   const columns: ColumnDef<Media, unknown>[] = [
+    ...selectColumn,
     {
       id: 'filename',
       accessorKey: 'filename',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Filename" />,
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          <MediaThumbnail type={row.original.type} className="size-9 shrink-0" />
+          <MediaThumbnail
+            type={row.original.type}
+            className="size-9 shrink-0"
+            status={row.original.status}
+            thumbnailUrl={row.original.urls.thumbnail ?? row.original.urls.small}
+            blurPlaceholder={row.original.blurPlaceholder}
+            alt={row.original.altText ?? undefined}
+          />
           <div>
             <div className="font-medium">{row.original.filename}</div>
             <div className="text-xs text-muted-foreground">{TYPE_LABELS[row.original.type]}</div>
@@ -89,7 +124,9 @@ export function MediaTable({
       header: 'Dimensions',
       enableSorting: false,
       cell: ({ row }) =>
-        row.original.width && row.original.height ? `${row.original.width}×${row.original.height}` : '—',
+        row.original.width && row.original.height
+          ? `${row.original.width}×${row.original.height}`
+          : '—',
     },
     {
       id: 'createdAt',

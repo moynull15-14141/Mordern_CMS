@@ -136,11 +136,52 @@ describe('ThemeLayoutShell (via any layout) — CSS variable application', () =>
       },
       customCss: null,
       customJs: null,
+      designTokens: null,
     };
     render(<DefaultLayout slots={baseSlots} theme={theme} />);
     const shell = screen.getByTestId('theme-layout-shell');
     expect(shell.style.getPropertyValue('--sportingspy-color-primary')).toBe('#123456');
     expect(shell.style.getPropertyValue('--sportingspy-color-accent')).toBe('#abcdef');
     expect(shell.style.getPropertyValue('--sportingspy-radius')).toBe('1rem');
+  });
+
+  // Regression test: `--sportingspy-color-background` is a CSS custom
+  // property declared on this shell `<div>` — scoped to it and its
+  // descendants only, never visible on `<body>` (an *ancestor*). Before
+  // this fix, `body`'s own `background: var(--sportingspy-color-background)`
+  // rule in globals.css could only ever see the static `:root` default,
+  // so a theme's Page Background color updated the header/footer (inside
+  // the shell) but never the area behind them. Painting `background`
+  // explicitly on this same element — where the variable is actually in
+  // scope — is the fix.
+  it('paints its own background from the page-background/color-background variables (not left to <body>)', () => {
+    const theme = {
+      id: 't1',
+      name: 'Theme',
+      slug: 'theme',
+      version: null,
+      logo: null,
+      favicon: null,
+      colors: { primary: '#123456', secondary: null },
+      typography: null,
+      layout: {
+        header: null,
+        footer: null,
+        containerWidth: null,
+        borderRadius: null,
+        buttonStyle: null,
+        homepage: null,
+        blog: null,
+      },
+      customCss: null,
+      customJs: null,
+      designTokens: { colors: { background: { page: '#bbd115' } } },
+    };
+    render(<DefaultLayout slots={baseSlots} theme={theme} />);
+    const shell = screen.getByTestId('theme-layout-shell');
+    expect(shell.style.getPropertyValue('--sportingspy-color-background')).toBe('#bbd115');
+    expect(shell.style.background).toBe(
+      'var(--sportingspy-page-background, var(--sportingspy-color-background))'
+    );
   });
 });

@@ -26,6 +26,7 @@ const baseTheme: PublicTheme = {
   },
   customCss: null,
   customJs: null,
+  designTokens: null,
 };
 
 describe('ThemeHeader', () => {
@@ -107,5 +108,19 @@ describe('ThemeHeader', () => {
       <ThemeHeader menus={emptyMenus} theme={baseTheme} settings={null} />
     );
     expect(container.querySelector('header')).not.toHaveClass('sticky');
+  });
+
+  // Regression test: the header's background/text used to read
+  // `--sportingspy-color-background`/`-text` — the SAME variables the
+  // page body reads — so a theme's "Page background" color silently
+  // controlled the navbar too, with no way to give the header its own
+  // color. It must read the dedicated `--sportingspy-header-*` tokens.
+  it('reads the dedicated --sportingspy-header-background/-text tokens, not the shared page-background ones', () => {
+    const { container } = render(
+      <ThemeHeader menus={emptyMenus} theme={baseTheme} settings={null} />
+    );
+    const header = container.querySelector('header');
+    expect(header?.className).toContain('bg-[var(--sportingspy-header-background)]');
+    expect(header?.className).not.toContain('bg-[var(--sportingspy-color-background)]');
   });
 });
