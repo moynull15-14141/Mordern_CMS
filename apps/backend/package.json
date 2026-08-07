@@ -14,7 +14,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3",
     "@aws-sdk/s3-request-presigner": "^3",
-    "@fastify/compress": "^8",
+    "@fastify/compress": "^9",
     "@fastify/cors": "^10",
     "@fastify/helmet": "^13",
     "@fastify/static": "^8",
