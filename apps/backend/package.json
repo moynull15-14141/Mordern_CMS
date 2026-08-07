@@ -30,7 +30,7 @@
     "bcrypt": "^5",
     "bullmq": "^5",
     "class-transformer": "^0.5",
-    "class-validator": "^0.14",
+    "class-validator": "^0.15",
     "exifr": "^7",
     "fastify": "^5",
     "file-type": "^19",
