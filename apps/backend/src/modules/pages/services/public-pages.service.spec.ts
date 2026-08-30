@@ -5,6 +5,9 @@ import { PublicPagesService } from './public-pages.service';
 import { PagePreviewService } from './page-preview.service';
 import { PageNotFoundException } from '../exceptions/page.exceptions';
 import { PageResponseDto } from '../dto/page-response.dto';
+import { PublicPageQueryDto } from '../dto/public-page-query.dto';
+import { PageSortField } from '../constants/page.constants';
+import { SortOrder } from '../../../common/dto/pagination.dto';
 
 function buildPageResponseDto(overrides: Partial<PageResponseDto> = {}): PageResponseDto {
   return {
@@ -26,6 +29,7 @@ function buildService() {
   const pagesService = {
     getPageBySlug: jest.fn(),
     getPage: jest.fn(),
+    listPages: jest.fn(),
   } as unknown as PagesService;
   const pagePreviewService = {
     resolvePreviewToken: jest.fn(),
@@ -88,6 +92,43 @@ describe('PublicPagesService', () => {
     expect(result).not.toHaveProperty('id');
     expect(result).not.toHaveProperty('createdAt');
     expect(result).not.toHaveProperty('deletedAt');
+  });
+
+  describe('listPages', () => {
+    it('forces status=PUBLISHED regardless of query input and passes pagination/sort through', async () => {
+      const { service, pagesService } = buildService();
+      (pagesService.listPages as jest.Mock).mockResolvedValue({
+        items: [buildPageResponseDto()],
+        pagination: { page: 1, limit: 20, total: 1, hasNext: false, hasPrevious: false },
+      });
+
+      const query: PublicPageQueryDto = {
+        page: 2,
+        limit: 10,
+        search: 'about',
+        sortBy: PageSortField.TITLE,
+        sortOrder: SortOrder.ASC,
+      };
+      const result = await service.listPages(query);
+
+      expect(pagesService.listPages).toHaveBeenCalledWith({
+        filters: { status: ContentStatus.PUBLISHED, search: 'about' },
+        sortBy: PageSortField.TITLE,
+        sortOrder: SortOrder.ASC,
+        page: 2,
+        limit: 10,
+      });
+      expect(result.items).toEqual([
+        {
+          title: 'About Us',
+          slug: 'about-us',
+          publishedAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+          noIndex: false,
+        },
+      ]);
+      expect(result.pagination.total).toBe(1);
+    });
   });
 
   describe('resolvePublishedIdBySlug', () => {

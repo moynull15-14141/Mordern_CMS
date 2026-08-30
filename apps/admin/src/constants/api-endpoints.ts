@@ -184,6 +184,19 @@ export const API_ENDPOINTS = {
     byId: (id: string) => `/layout-assignments/${id}`,
     restore: (id: string) => `/layout-assignments/${id}/restore`,
   },
+  /** Navigation/Menu Management — sub-paths verified directly against
+   * `apps/backend/src/modules/menus/controllers/menus.controller.ts`.
+   * Items have no standalone list/get route — they only ever arrive
+   * nested inside `byId`/`bySlug`'s response. */
+  MENUS: {
+    ROOT: '/menus',
+    bySlug: (slug: string) => `/menus/slug/${slug}`,
+    byId: (id: string) => `/menus/${id}`,
+    restore: (id: string) => `/menus/${id}/restore`,
+    items: (menuId: string) => `/menus/${menuId}/items`,
+    item: (menuId: string, itemId: string) => `/menus/${menuId}/items/${itemId}`,
+    reorderItems: (menuId: string) => `/menus/${menuId}/items/reorder`,
+  },
   /** Rich Content Engine (Phase 1 / Step 1, Milestone 3) — sub-paths
    * verified directly against
    * `apps/backend/src/modules/content-blocks/controllers/reusable-blocks.controller.ts`.
@@ -207,6 +220,13 @@ export const API_ENDPOINTS = {
     usages: (id: string) => `/patterns/${id}/usages`,
     favorites: '/patterns/favorites',
     favorite: (id: string) => `/patterns/${id}/favorite`,
+  },
+  /** Redirect Management — sub-paths verified directly against
+   * `apps/backend/src/modules/redirects/controllers/redirects.controller.ts`. */
+  REDIRECTS: {
+    ROOT: '/redirects',
+    byId: (id: string) => `/redirects/${id}`,
+    restore: (id: string) => `/redirects/${id}/restore`,
   },
   HEALTH: '/health',
 } as const;

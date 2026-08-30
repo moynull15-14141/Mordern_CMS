@@ -26,7 +26,7 @@ function buildCategoryResponseDto(
 describe('PublicCategoriesMapper', () => {
   const mapper = new PublicCategoriesMapper();
 
-  it('maps name/slug/description/articleCount through unchanged', () => {
+  it('maps name/slug/description/articleCount/updatedAt through unchanged', () => {
     const result = mapper.toPublicResponseDto(buildCategoryResponseDto());
     expect(result).toEqual({
       name: 'Football',
@@ -34,22 +34,24 @@ describe('PublicCategoriesMapper', () => {
       description: 'All things football',
       articleCount: 5,
       seo: null,
+      updatedAt: '2026-01-01T00:00:00.000Z',
     });
   });
 
-  it('never exposes id, parentId, sortOrder, childrenCount, status, or audit fields', () => {
+  it('never exposes id, parentId, sortOrder, childrenCount, status, createdAt, or deletedAt', () => {
     const result = mapper.toPublicResponseDto(buildCategoryResponseDto()) as unknown as Record<
       string,
       unknown
     >;
 
+    // `updatedAt` IS deliberately exposed (Step 2 URL/SEO milestone) — the
+    // sitemap generator needs a real lastmod value.
     expect(result).not.toHaveProperty('id');
     expect(result).not.toHaveProperty('parentId');
     expect(result).not.toHaveProperty('sortOrder');
     expect(result).not.toHaveProperty('childrenCount');
     expect(result).not.toHaveProperty('status');
     expect(result).not.toHaveProperty('createdAt');
-    expect(result).not.toHaveProperty('updatedAt');
     expect(result).not.toHaveProperty('deletedAt');
   });
 

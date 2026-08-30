@@ -10,6 +10,7 @@ export const PUBLIC_API_ROUTES = {
   THEME: '/public/theme',
   MENU_BY_LOCATION: (location: string) => `/public/menus/${location}`,
   MENU_BY_SLUG: (slug: string) => `/public/menus/slug/${slug}`,
+  PAGES: '/public/pages',
   PAGE_BY_SLUG: (slug: string) => `/public/pages/slug/${slug}`,
   PAGE_PREVIEW_BY_TOKEN: (token: string) =>
     `/public/pages/preview?token=${encodeURIComponent(token)}`,
@@ -28,4 +29,5 @@ export const PUBLIC_API_ROUTES = {
   REUSABLE_BLOCK_BY_ID: (id: string) => `/public/content-blocks/reusable/${id}`,
   MEDIA_BY_ID: (id: string) => `/public/media/${id}`,
   PATTERN_BY_ID: (id: string) => `/public/patterns/${id}`,
+  REDIRECT_LOOKUP: (path: string) => `/public/redirects/lookup?path=${encodeURIComponent(path)}`,
 } as const;

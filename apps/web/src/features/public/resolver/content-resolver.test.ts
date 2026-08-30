@@ -1,7 +1,26 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveContent } from './content-resolver';
 import * as contentLoader from '../services/content-loader.service';
+import * as redirectsService from '../services/redirects.service';
+import * as nextNavigation from 'next/navigation';
 import { PublicApiError } from '../utils/errors';
+
+vi.mock('../services/redirects.service', () => ({ getRedirectForPath: vi.fn() }));
+vi.mock('next/navigation', () => ({
+  redirect: vi.fn(() => {
+    throw new Error('NEXT_REDIRECT');
+  }),
+  permanentRedirect: vi.fn(() => {
+    throw new Error('NEXT_REDIRECT');
+  }),
+}));
+
+beforeEach(() => {
+  vi.mocked(redirectsService.getRedirectForPath).mockReset();
+  vi.mocked(redirectsService.getRedirectForPath).mockResolvedValue(null);
+  vi.mocked(nextNavigation.redirect).mockClear();
+  vi.mocked(nextNavigation.permanentRedirect).mockClear();
+});
 
 describe('resolveContent', () => {
   it('resolves to not-found for an unrecognized URL shape', async () => {
@@ -85,5 +104,39 @@ describe('resolveContent', () => {
     );
 
     await expect(resolveContent('/page/broken-page')).rejects.toThrow(PublicApiError);
+  });
+
+  it('issues a temporary redirect (307) when a 302 redirect is configured for a 404 path', async () => {
+    vi.spyOn(contentLoader, 'getPageBySlug').mockRejectedValueOnce(
+      new PublicApiError({ message: 'not found', code: 'BUSINESS_NOT_FOUND', status: 404 })
+    );
+    vi.mocked(redirectsService.getRedirectForPath).mockResolvedValueOnce({
+      destinationUrl: '/page/new-about',
+      redirectType: 302,
+    });
+
+    await expect(resolveContent('/page/old-about')).rejects.toThrow('NEXT_REDIRECT');
+    expect(nextNavigation.redirect).toHaveBeenCalledWith('/page/new-about');
+    expect(nextNavigation.permanentRedirect).not.toHaveBeenCalled();
+  });
+
+  it('issues a permanent redirect (308) when a 301 redirect is configured for a 404 path', async () => {
+    vi.spyOn(contentLoader, 'getPageBySlug').mockRejectedValueOnce(
+      new PublicApiError({ message: 'not found', code: 'BUSINESS_NOT_FOUND', status: 404 })
+    );
+    vi.mocked(redirectsService.getRedirectForPath).mockResolvedValueOnce({
+      destinationUrl: '/page/moved-about',
+      redirectType: 301,
+    });
+
+    await expect(resolveContent('/page/ancient-about')).rejects.toThrow('NEXT_REDIRECT');
+    expect(nextNavigation.permanentRedirect).toHaveBeenCalledWith('/page/moved-about');
+  });
+
+  it('falls through to not-found when no redirect is configured for an unmatched URL shape', async () => {
+    vi.mocked(redirectsService.getRedirectForPath).mockResolvedValueOnce(null);
+    const result = await resolveContent('/some-random-unmatched-path');
+    expect(result).toEqual({ type: 'not-found', path: '/some-random-unmatched-path' });
+    expect(nextNavigation.redirect).not.toHaveBeenCalled();
   });
 });

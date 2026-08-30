@@ -23,3 +23,19 @@ export const GENERIC_UPDATE_ALLOWED_STATUSES = ['DRAFT', 'REVIEW', 'ARCHIVED'] a
 export const SLUG_MIN_LENGTH = 3;
 export const SLUG_MAX_LENGTH = 200;
 export const SLUG_MAX_UNIQUENESS_ATTEMPTS = 50;
+
+/** Step 2 URL/SEO milestone — Pages are actually served under `/page/:slug`
+ * (namespaced, per the app's real routing), so none of these collide with
+ * a live route today; kept as defensive insurance against a future URL
+ * architecture change (a bare-root page URL scheme) rather than a fix for
+ * a collision that exists right now. */
+export const RESERVED_PAGE_SLUGS = [
+  'admin',
+  'api',
+  'sitemap',
+  'sitemap.xml',
+  'robots.txt',
+  'preview',
+  'studio',
+  '_next',
+] as const;

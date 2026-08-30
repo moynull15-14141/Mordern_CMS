@@ -31,6 +31,7 @@ import { SiteModule } from './modules/site/site.module';
 import { LayoutsModule } from './modules/layouts/layouts.module';
 import { ContentBlocksModule } from './modules/content-blocks/content-blocks.module';
 import { PatternsModule } from './modules/patterns/patterns.module';
+import { RedirectsModule } from './modules/redirects/redirects.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { PatternsModule } from './modules/patterns/patterns.module';
     ThemesModule,
     SiteModule,
     LayoutsModule,
+    RedirectsModule,
     HealthModule,
   ],
   providers: [

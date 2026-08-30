@@ -2,8 +2,10 @@ import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ApiWrappedResponse } from '../../../core/responses/api-response.swagger';
 import { Public } from '../../identity/decorators/public.decorator';
+import { PaginatedResult } from '../../../common/dto/pagination.dto';
 import { PublicPagesService } from '../services/public-pages.service';
-import { PublicPageResponseDto } from '../dto/public-page-response.dto';
+import { PublicPageQueryDto } from '../dto/public-page-query.dto';
+import { PublicPageListItemDto, PublicPageResponseDto } from '../dto/public-page-response.dto';
 
 /**
  * Public Pages API (Backend Milestone 13.2) — powers the Public Rendering
@@ -22,6 +24,15 @@ import { PublicPageResponseDto } from '../dto/public-page-response.dto';
 @Controller('public/pages')
 export class PublicPagesController {
   constructor(private readonly publicPagesService: PublicPagesService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List published pages (paginated) — public, no auth' })
+  @ApiWrappedResponse(PublicPageListItemDto, { isArray: true })
+  async listPages(
+    @Query() query: PublicPageQueryDto
+  ): Promise<PaginatedResult<PublicPageListItemDto>> {
+    return this.publicPagesService.listPages(query);
+  }
 
   @Get('slug/:slug')
   @ApiOperation({ summary: 'Get a published page by slug — public, no auth' })

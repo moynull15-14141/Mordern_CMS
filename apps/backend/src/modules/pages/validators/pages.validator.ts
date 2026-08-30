@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ContentStatus } from '@prisma/client';
 import {
   GENERIC_UPDATE_ALLOWED_STATUSES,
+  RESERVED_PAGE_SLUGS,
   SLUG_MAX_LENGTH,
   SLUG_MIN_LENGTH,
 } from '../constants/page.constants';
@@ -27,6 +28,11 @@ export class PagesValidator {
     if (!SLUG_SHAPE_PATTERN.test(slug)) {
       throw new PageSlugValidationException(
         'must be lowercase alphanumeric words separated by single hyphens'
+      );
+    }
+    if ((RESERVED_PAGE_SLUGS as readonly string[]).includes(slug)) {
+      throw new PageSlugValidationException(
+        `"${slug}" is a reserved word and cannot be used as a page slug`
       );
     }
   }

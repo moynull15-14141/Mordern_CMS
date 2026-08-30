@@ -87,14 +87,15 @@ describe('PublicArticlesMapper', () => {
     expect(result.seo).not.toHaveProperty('extraMeta');
   });
 
-  it('never exposes audit fields, scheduledAt, or notes in the detail shape', () => {
+  it('never exposes createdAt, deletedAt, scheduledAt, or notes in the detail shape', () => {
     const result = mapper.toPublicResponseDto(buildArticleResponseDto()) as unknown as Record<
       string,
       unknown
     >;
 
+    // `updatedAt` IS deliberately exposed (Step 2 URL/SEO milestone) — the
+    // sitemap generator needs a real lastmod value.
     expect(result).not.toHaveProperty('createdAt');
-    expect(result).not.toHaveProperty('updatedAt');
     expect(result).not.toHaveProperty('deletedAt');
     expect(result).not.toHaveProperty('scheduledAt');
     expect(result).not.toHaveProperty('notes');

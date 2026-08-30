@@ -20,6 +20,8 @@ export const ROUTES = {
   PATTERNS: '/patterns',
   THEMES: '/themes',
   LAYOUTS: '/layouts',
+  NAVIGATION: '/navigation',
+  REDIRECTS: '/redirects',
   USERS: '/users',
   ROLES: '/roles',
   SETTINGS: '/settings',
@@ -127,6 +129,26 @@ export const LAYOUT_ROUTES = {
   detail: (id: string) => `${ROUTES.LAYOUTS}/${id}`,
   edit: (id: string) => `${ROUTES.LAYOUTS}/${id}/edit`,
   assignments: () => `${ROUTES.LAYOUTS}/assignments`,
+};
+
+/** Navigation/Menu Management admin UI — id-scoped path builders,
+ * additive to `ROUTES`. Mirrors `PATTERN_ROUTES`'s shape exactly (no
+ * dedicated preview route — the tree editor on the Edit page doubles as
+ * the structure preview, same "Detail page serves as the preview"
+ * precedent `THEME_ROUTES`/`PATTERN_ROUTES` already set). */
+export const NAVIGATION_ROUTES = {
+  new: () => `${ROUTES.NAVIGATION}/new`,
+  detail: (id: string) => `${ROUTES.NAVIGATION}/${id}`,
+  edit: (id: string) => `${ROUTES.NAVIGATION}/${id}/edit`,
+};
+
+/** Redirect Management (Step 2 URL/SEO milestone) — id-scoped path
+ * builders, additive to `ROUTES`. No `detail` route — a plain source →
+ * destination mapping has nothing worth a read-only page beyond what the
+ * list row already shows; Edit is the only id-scoped route. */
+export const REDIRECT_ROUTES = {
+  new: () => `${ROUTES.REDIRECTS}/new`,
+  edit: (id: string) => `${ROUTES.REDIRECTS}/${id}/edit`,
 };
 
 /** Routes reachable without authentication — GuestRoute redirects an

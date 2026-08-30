@@ -89,6 +89,18 @@ export class PublicArticleListItemDto {
 
   @ApiProperty({ type: [PublicArticleTagDto] })
   tags!: PublicArticleTagDto[];
+
+  @ApiProperty({
+    description: 'Last modified timestamp — used as sitemap.xml lastmod, not rendered in the UI.',
+  })
+  updatedAt!: string;
+
+  @ApiProperty({
+    description:
+      'True when this article is marked noindex — sitemap.xml excludes it. Derived from ' +
+      '`seo.robots.index`; the full `seo` object itself is excluded from listings by design.',
+  })
+  noIndex!: boolean;
 }
 
 /**

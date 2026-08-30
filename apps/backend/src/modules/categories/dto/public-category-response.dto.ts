@@ -55,4 +55,9 @@ export class PublicCategoryResponseDto {
 
   @ApiProperty({ type: PublicCategorySeoDto, nullable: true })
   seo!: PublicCategorySeoDto | null;
+
+  @ApiProperty({
+    description: 'Last modified timestamp — used as sitemap.xml lastmod, not rendered in the UI.',
+  })
+  updatedAt!: string;
 }

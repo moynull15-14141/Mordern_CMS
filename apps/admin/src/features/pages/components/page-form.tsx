@@ -53,7 +53,15 @@ export function CreatePageForm({
       title: '',
       slug: '',
       body: [],
-      seo: { title: '', description: '', canonicalUrl: '', keywords: '' },
+      seo: {
+        title: '',
+        description: '',
+        canonicalUrl: '',
+        keywords: '',
+        noIndex: false,
+        noFollow: false,
+        ogImage: '',
+      },
     },
   });
   const { isDirty } = form.formState;

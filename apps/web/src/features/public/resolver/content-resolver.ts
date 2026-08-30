@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { redirect, permanentRedirect } from 'next/navigation';
 import type { ResolvedPublicContent } from '../types/content.types';
 import { matchContentRoute } from '../utils/route-shape.util';
 import { PublicApiError } from '../utils/errors';
@@ -7,6 +8,33 @@ import {
   getCategoryBySlug,
   getPageBySlug,
 } from '../services/content-loader.service';
+import { getRedirectForPath } from '../services/redirects.service';
+
+/**
+ * Checked only when normal content resolution is about to return
+ * `not-found` — never on a path that already resolves to real content, so
+ * a redirect never adds a request to the common case (Step 2 URL/SEO
+ * milestone's "Redirects must execute before normal 404 resolution":
+ * satisfied by running this immediately before that 404 is returned,
+ * rather than as a lookup on every single request).
+ *
+ * Next.js Server Components can only ever issue a 307 (`redirect()`) or
+ * 308 (`permanentRedirect()`) — there is no App Router primitive for a
+ * literal 301/302 status without adding `middleware.ts` and its
+ * per-request overhead on every route, including ones that already
+ * resolve fine. 308/permanent and 307/temporary are the modern-SEO
+ * equivalents of 301/302 (Google treats them the same for
+ * ranking-transfer purposes) — a deliberate mapping, not a shortcut.
+ */
+async function redirectIfConfigured(pathname: string): Promise<void> {
+  const found = await getRedirectForPath(pathname);
+  if (!found) return; // no redirect configured — caller proceeds to a real 404
+
+  if (found.redirectType === 301) {
+    permanentRedirect(found.destinationUrl); // throws — Next.js issues a 308
+  }
+  redirect(found.destinationUrl); // throws — Next.js issues a 307
+}
 
 /**
  * ContentResolver — "Given a URL, determine Page / Article / Category /
@@ -39,6 +67,7 @@ export const resolveContent = cache(async (pathname: string): Promise<ResolvedPu
   const match = matchContentRoute(pathname);
 
   if (!match) {
+    await redirectIfConfigured(pathname);
     return { type: 'not-found', path: pathname };
   }
 
@@ -57,6 +86,7 @@ export const resolveContent = cache(async (pathname: string): Promise<ResolvedPu
     }
   } catch (error) {
     if (error instanceof PublicApiError && error.status === 404) {
+      await redirectIfConfigured(pathname);
       return { type: 'not-found', path: pathname };
     }
     throw error;

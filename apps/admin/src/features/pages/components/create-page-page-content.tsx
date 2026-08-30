@@ -17,7 +17,13 @@ function toCreateInput(values: CreatePageFormValues): CreatePageInput {
         .filter(Boolean)
     : undefined;
   const hasSeo = Boolean(
-    values.seo?.title || values.seo?.description || values.seo?.canonicalUrl || keywords?.length
+    values.seo?.title ||
+    values.seo?.description ||
+    values.seo?.canonicalUrl ||
+    values.seo?.ogImage ||
+    values.seo?.noIndex ||
+    values.seo?.noFollow ||
+    keywords?.length
   );
 
   return {
@@ -30,6 +36,11 @@ function toCreateInput(values: CreatePageFormValues): CreatePageInput {
           description: values.seo?.description || undefined,
           canonicalUrl: values.seo?.canonicalUrl || undefined,
           keywords,
+          openGraph: values.seo?.ogImage ? { image: values.seo.ogImage } : undefined,
+          robots:
+            values.seo?.noIndex || values.seo?.noFollow
+              ? { index: !values.seo?.noIndex, follow: !values.seo?.noFollow }
+              : undefined,
         }
       : undefined,
   };

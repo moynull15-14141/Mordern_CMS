@@ -4,11 +4,20 @@ import type {
   PublicArticleListItem,
   PublicCategoryContent,
   PublicPageContent,
+  PublicPageListItem,
 } from '../types/content.types';
 import type { PaginationMeta } from '../types/api-envelope.types';
 import { publicFetch, publicFetchPaginated } from './public-fetch.service';
 
 export interface ArticleListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: 'title' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'status';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface PageListParams {
   page?: number;
   limit?: number;
   search?: string;
@@ -50,6 +59,24 @@ export async function getPageBySlug(slug: string): Promise<PublicPageContent> {
     PUBLIC_API_ROUTES.PAGE_BY_SLUG(slug)
   );
   return { type: 'page', ...page };
+}
+
+/** Powers `sitemap.ts` — the only public caller that needs every
+ * published page, not one by slug. */
+export async function listPages(
+  params: PageListParams = {}
+): Promise<{ pages: PublicPageListItem[]; pagination: PaginationMeta }> {
+  const query = toQueryString({
+    page: params.page,
+    limit: params.limit,
+    search: params.search,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
+  });
+  const { data, pagination } = await publicFetchPaginated<PublicPageListItem>(
+    `${PUBLIC_API_ROUTES.PAGES}${query}`
+  );
+  return { pages: data, pagination };
 }
 
 export async function listArticles(

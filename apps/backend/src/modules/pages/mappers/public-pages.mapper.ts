@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PageResponseDto } from '../dto/page-response.dto';
-import { PublicPageResponseDto, PublicPageSeoDto } from '../dto/public-page-response.dto';
+import {
+  PublicPageListItemDto,
+  PublicPageResponseDto,
+  PublicPageSeoDto,
+} from '../dto/public-page-response.dto';
 
 /**
  * Trims the existing (admin-shaped) `PageResponseDto` — already produced by
@@ -21,6 +25,16 @@ export class PublicPagesMapper {
       twitterCard: seo.twitterCard,
       schemaJson: seo.schemaJson,
       robots: seo.robots,
+    };
+  }
+
+  toListItemDto(page: PageResponseDto): PublicPageListItemDto {
+    return {
+      title: page.title,
+      slug: page.slug,
+      publishedAt: page.publishedAt,
+      updatedAt: page.updatedAt,
+      noIndex: page.seo?.robots?.index === false,
     };
   }
 

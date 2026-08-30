@@ -70,6 +70,7 @@ describe('PublicCategoriesService', () => {
         description: null,
         articleCount: 3,
         seo: null,
+        updatedAt: '2026-01-01T00:00:00.000Z',
       });
       expect(result.pagination.total).toBe(1);
     });

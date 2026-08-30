@@ -33,6 +33,7 @@ export class PublicCategoriesMapper {
       description: category.description,
       articleCount: category.articleCount,
       seo: this.toSeoDto(category.seo),
+      updatedAt: category.updatedAt,
     };
   }
 }

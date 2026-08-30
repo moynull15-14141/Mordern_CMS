@@ -5,6 +5,7 @@ import {
   getPageBySlug,
   listArticles,
   listCategories,
+  listPages,
 } from './content-loader.service';
 
 function mockFetchOnce(status: number, body: unknown) {
@@ -46,6 +47,37 @@ describe('content-loader.service', () => {
       expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0]).toContain(
         '/public/pages/slug/about-us'
       );
+    });
+  });
+
+  describe('listPages', () => {
+    it('calls GET /public/pages and returns pages + pagination', async () => {
+      mockFetchOnce(200, {
+        success: true,
+        message: 'ok',
+        data: [
+          {
+            title: 'About',
+            slug: 'about-us',
+            publishedAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-02T00:00:00.000Z',
+            noIndex: false,
+          },
+        ],
+        meta: {
+          pagination: { page: 1, limit: 5000, total: 1, hasNext: false, hasPrevious: false },
+        },
+        errors: [],
+      });
+
+      const result = await listPages({ limit: 5000 });
+
+      const calledUrl = (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      expect(calledUrl).toContain('/public/pages?');
+      expect(calledUrl).toContain('limit=5000');
+      expect(result.pages).toHaveLength(1);
+      expect(result.pages[0].slug).toBe('about-us');
+      expect(result.pagination.total).toBe(1);
     });
   });
 

@@ -10,11 +10,13 @@ import {
   Search,
   Palette,
   LayoutTemplate,
+  Menu as MenuIcon,
   Users,
   ShieldCheck,
   Settings as SettingsIcon,
   Activity,
   Server,
+  Signpost,
 } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
 import { PERMISSIONS } from '@/constants/permissions';
@@ -106,6 +108,13 @@ export const NAVIGATION: NavGroup[] = [
         icon: LayoutTemplate,
         permissions: [PERMISSIONS.PAGE_MANAGE],
       },
+      {
+        id: 'navigation',
+        label: 'Navigation',
+        href: ROUTES.NAVIGATION,
+        icon: MenuIcon,
+        permissions: [PERMISSIONS.MENU_MANAGE],
+      },
     ],
   },
   {
@@ -123,6 +132,13 @@ export const NAVIGATION: NavGroup[] = [
         href: ROUTES.SEO,
         icon: Search,
         permissions: [PERMISSIONS.SEO_MANAGE],
+      },
+      {
+        id: 'redirects',
+        label: 'Redirects',
+        href: ROUTES.REDIRECTS,
+        icon: Signpost,
+        permissions: [PERMISSIONS.PAGE_MANAGE],
       },
     ],
   },

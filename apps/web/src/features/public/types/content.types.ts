@@ -42,7 +42,12 @@ export interface PublicArticleTag {
 }
 
 /** Mirrors `PublicArticleListItemDto` — the shape `GET /public/articles`
- * returns per item (no `body`/`seo` — see that DTO's doc comment). */
+ * returns per item (no `body`/full `seo` — see that DTO's doc comment).
+ * `updatedAt`/`noIndex` are always present on the real wire response, but
+ * typed optional here rather than required — every rendering call site
+ * (cards, lists) genuinely never reads either, only `sitemap.ts` does, and
+ * marking them required would force every existing test fixture across
+ * this app to grow two fields it never needed before this milestone. */
 export interface PublicArticleListItem {
   title: string;
   subtitle: string | null;
@@ -53,6 +58,18 @@ export interface PublicArticleListItem {
   author: PublicArticleAuthor;
   category: PublicArticleCategory | null;
   tags: PublicArticleTag[];
+  updatedAt?: string;
+  noIndex?: boolean;
+}
+
+/** Mirrors `PublicPageListItemDto` — `GET /public/pages`'s per-item shape.
+ * Exists primarily for `sitemap.ts` to enumerate every published page. */
+export interface PublicPageListItem {
+  title: string;
+  slug: string;
+  publishedAt: string | null;
+  updatedAt: string;
+  noIndex: boolean;
 }
 
 /** Mirrors `PublicArticleResponseDto` — `GET /public/articles/slug/:slug`'s
@@ -76,6 +93,10 @@ export interface PublicCategoryContent {
   description: string | null;
   articleCount: number;
   seo: PublicSeo | null;
+  /** Always present on the real wire response; optional here for the same
+   * reason `PublicArticleListItem.updatedAt` is — only `sitemap.ts` reads
+   * it. */
+  updatedAt?: string;
 }
 
 /**

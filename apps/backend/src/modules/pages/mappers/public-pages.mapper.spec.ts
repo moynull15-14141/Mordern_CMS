@@ -80,4 +80,42 @@ describe('PublicPagesMapper', () => {
     const result = mapper.toPublicResponseDto(dto);
     expect(result.seo).toBeNull();
   });
+
+  describe('toListItemDto', () => {
+    it('maps title/slug/publishedAt/updatedAt, and defaults noIndex to false', () => {
+      const dto = buildPageResponseDto();
+      const result = mapper.toListItemDto(dto);
+
+      expect(result).toEqual({
+        title: 'About Us',
+        slug: 'about-us',
+        publishedAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        noIndex: false,
+      });
+    });
+
+    it('never exposes body, id, or seo (not rendered in a listing)', () => {
+      const dto = buildPageResponseDto({ seo: { title: 'About', robots: { index: true } } });
+      const result = mapper.toListItemDto(dto) as unknown as Record<string, unknown>;
+
+      expect(result).not.toHaveProperty('body');
+      expect(result).not.toHaveProperty('id');
+      expect(result).not.toHaveProperty('seo');
+    });
+
+    it('sets noIndex to true when seo.robots.index is explicitly false', () => {
+      const dto = buildPageResponseDto({ seo: { robots: { index: false } } });
+      const result = mapper.toListItemDto(dto);
+      expect(result.noIndex).toBe(true);
+    });
+
+    it('sets noIndex to false when seo.robots.index is true or unset', () => {
+      expect(
+        mapper.toListItemDto(buildPageResponseDto({ seo: { robots: { index: true } } })).noIndex
+      ).toBe(false);
+      expect(mapper.toListItemDto(buildPageResponseDto({ seo: null })).noIndex).toBe(false);
+      expect(mapper.toListItemDto(buildPageResponseDto({ seo: {} })).noIndex).toBe(false);
+    });
+  });
 });

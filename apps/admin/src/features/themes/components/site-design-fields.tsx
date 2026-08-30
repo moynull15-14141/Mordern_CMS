@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { MenuPickerField } from '@/features/navigation';
 import { ColorInput } from './color-input';
 import { AppearanceSettingsFields } from './appearance-settings-fields';
 import { DESIGN_PRESETS } from '../constants/design-presets';
@@ -565,11 +566,6 @@ export function SiteDesignFields<TFieldValues extends FieldValues>({
               label="Height"
               placeholder="4rem"
             />
-            <TextField
-              control={control}
-              name={'settings.designTokens.header.menuId' as Path<TFieldValues>}
-              label="Navigation menu id"
-            />
             <ColorField
               control={control}
               name={'settings.designTokens.header.background' as Path<TFieldValues>}
@@ -581,6 +577,11 @@ export function SiteDesignFields<TFieldValues extends FieldValues>({
               label="Text color"
             />
           </div>
+          <MenuPickerField
+            control={control}
+            name={'settings.designTokens.header.menuId' as Path<TFieldValues>}
+            label="Header navigation"
+          />
           <div className="grid grid-cols-2 gap-2">
             <SwitchField
               control={control}
@@ -616,11 +617,6 @@ export function SiteDesignFields<TFieldValues extends FieldValues>({
 
         <TabsContent value="footer" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <TextField
-              control={control}
-              name={'settings.designTokens.footer.menuId' as Path<TFieldValues>}
-              label="Navigation menu id"
-            />
             <ColorField
               control={control}
               name={'settings.designTokens.footer.background' as Path<TFieldValues>}
@@ -632,6 +628,11 @@ export function SiteDesignFields<TFieldValues extends FieldValues>({
               label="Text color"
             />
           </div>
+          <MenuPickerField
+            control={control}
+            name={'settings.designTokens.footer.menuId' as Path<TFieldValues>}
+            label="Footer navigation"
+          />
           <SwitchField
             control={control}
             name={'settings.designTokens.footer.showNewsletter' as Path<TFieldValues>}

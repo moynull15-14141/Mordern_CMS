@@ -36,6 +36,36 @@ export class PublicPageSeoDto {
 }
 
 /**
+ * List-item shape for `GET /public/pages` — deliberately excludes `body`
+ * (heavy; only the detail endpoint needs it) and the full `seo` object
+ * (not rendered in a listing — mirrors `PublicArticleListItemDto`'s exact
+ * reasoning), keeping only what `apps/web`'s sitemap generator needs:
+ * `updatedAt` (lastmod) and a derived `noIndex` flag.
+ */
+export class PublicPageListItemDto {
+  @ApiProperty()
+  title!: string;
+
+  @ApiProperty()
+  slug!: string;
+
+  @ApiProperty({ nullable: true })
+  publishedAt!: string | null;
+
+  @ApiProperty({
+    description: 'Last modified timestamp — used as sitemap.xml lastmod, not rendered in the UI.',
+  })
+  updatedAt!: string;
+
+  @ApiProperty({
+    description:
+      'True when this page is marked noindex — sitemap.xml excludes it. Derived from ' +
+      '`seo.robots.index`; the full `seo` object itself is excluded from listings by design.',
+  })
+  noIndex!: boolean;
+}
+
+/**
  * Public, rendering-only shape for a published `Page` — powers
  * `GET /public/pages/slug/:slug` (Milestone 13.2). Deliberately excludes
  * `id` (no public use for it — a page is addressed by `slug`), `status`

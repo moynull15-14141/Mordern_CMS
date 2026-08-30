@@ -40,6 +40,8 @@ export class PublicArticlesMapper {
         ? { name: article.category.name, slug: article.category.slug }
         : null,
       tags: article.tags.map((tag) => ({ name: tag.name, slug: tag.slug, primary: tag.primary })),
+      updatedAt: article.updatedAt,
+      noIndex: article.seo?.robots?.index === false,
     };
   }
 

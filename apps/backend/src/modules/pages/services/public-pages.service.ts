@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ContentStatus } from '@prisma/client';
+import { PaginatedResult } from '../../../common/dto/pagination.dto';
 import { PagesService } from './pages.service';
 import { PagePreviewService } from './page-preview.service';
 import { PublicPagesMapper } from '../mappers/public-pages.mapper';
-import { PublicPageResponseDto } from '../dto/public-page-response.dto';
+import { PublicPageListItemDto, PublicPageResponseDto } from '../dto/public-page-response.dto';
+import { PublicPageQueryDto } from '../dto/public-page-query.dto';
 import { PageResponseDto } from '../dto/page-response.dto';
 import { PageNotFoundException } from '../exceptions/page.exceptions';
 
@@ -29,6 +31,26 @@ export class PublicPagesService {
     private readonly mapper: PublicPagesMapper,
     private readonly pagePreviewService: PagePreviewService
   ) {}
+
+  /** Powers `GET /public/pages` — primarily so `apps/web`'s sitemap
+   * generator can enumerate every published page (no other public
+   * endpoint could, until now — see the Step 2 URL/SEO milestone's Phase
+   * 0 audit). Reuses `PagesService.listPages` verbatim, forcing
+   * `status: PUBLISHED` server-side exactly like `PublicArticlesService`. */
+  async listPages(query: PublicPageQueryDto): Promise<PaginatedResult<PublicPageListItemDto>> {
+    const result = await this.pagesService.listPages({
+      filters: { status: ContentStatus.PUBLISHED, search: query.search },
+      sortBy: query.sortBy!,
+      sortOrder: query.sortOrder!,
+      page: query.page!,
+      limit: query.limit!,
+    });
+
+    return {
+      items: result.items.map((item) => this.mapper.toListItemDto(item)),
+      pagination: result.pagination,
+    };
+  }
 
   private async getPublishedOrThrow(slug: string): Promise<PageResponseDto> {
     const page = await this.pagesService.getPageBySlug(slug);

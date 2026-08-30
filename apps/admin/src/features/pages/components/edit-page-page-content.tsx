@@ -47,6 +47,9 @@ function toFormDefaults(page: Page): UpdatePageFormValues {
       description: page.seo?.description ?? '',
       canonicalUrl: page.seo?.canonicalUrl ?? '',
       keywords: page.seo?.keywords?.join(', ') ?? '',
+      noIndex: page.seo?.robots?.index === false,
+      noFollow: page.seo?.robots?.follow === false,
+      ogImage: typeof page.seo?.openGraph?.image === 'string' ? page.seo.openGraph.image : '',
     },
   };
 }
@@ -59,7 +62,13 @@ function toUpdateInput(values: UpdatePageFormValues): UpdatePageInput {
         .filter(Boolean)
     : undefined;
   const hasSeo = Boolean(
-    values.seo?.title || values.seo?.description || values.seo?.canonicalUrl || keywords?.length
+    values.seo?.title ||
+    values.seo?.description ||
+    values.seo?.canonicalUrl ||
+    values.seo?.ogImage ||
+    values.seo?.noIndex ||
+    values.seo?.noFollow ||
+    keywords?.length
   );
 
   return {
@@ -73,6 +82,11 @@ function toUpdateInput(values: UpdatePageFormValues): UpdatePageInput {
           description: values.seo?.description || undefined,
           canonicalUrl: values.seo?.canonicalUrl || undefined,
           keywords,
+          openGraph: values.seo?.ogImage ? { image: values.seo.ogImage } : undefined,
+          robots:
+            values.seo?.noIndex || values.seo?.noFollow
+              ? { index: !values.seo?.noIndex, follow: !values.seo?.noFollow }
+              : undefined,
         }
       : undefined,
   };
